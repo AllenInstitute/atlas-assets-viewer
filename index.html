@@ -649,32 +649,44 @@ const TYPE_META  = {
   'coordinate-spaces':         {label:'Coordinate Spaces',      icon:'📐'},
   'coordinate-transformations':{label:'Transformations',        icon:'↔'},
 };
+/* Port of atlas_assets.validation.spec at atlas-assets v0.2.2.
+   rf/rd required files/dirs · of/od optional · cf conditional (required if
+   computed) · pat optional file patterns · mk minimal manifest keys. */
+const SPEC_VERSION = '0.2.2';
+const COMMON_OF = ['citation.cff'];
 const SPEC = {
   'atlases':{
-    rf:['data_description.json','manifest.json'],rd:[],of:[],od:[],cf:[],
+    rf:['data_description.json','manifest.json'],rd:[],of:[...COMMON_OF],od:[],cf:[],
     pat:[],sfx:'-atlas',rex:null,extra:false,
+    mk:['coordinate_space','templates','annotation_sets','schema_version','described_by'],
   },
   'templates':{
-    rf:['data_description.json','manifest.json'],rd:['template.ome.zarr'],of:[],od:[],cf:['processing.json'],
+    rf:['data_description.json','manifest.json'],rd:['template.ome.zarr'],of:[...COMMON_OF],od:[],cf:['processing.json'],
     pat:[/^template_[A-Za-z0-9.]+\.nii\.gz$/],sfx:'-template',rex:null,extra:false,
+    mk:['coordinate_space','schema_version','described_by'],
   },
   'annotation-sets':{
     rf:['data_description.json','manifest.json'],rd:['annotations.ome.zarr','annotations.precomputed'],
-    of:['parcellation_volumes.csv'],od:['annotations_compressed.ome.zarr','annotations_smooth.precomputed'],cf:[],
+    of:['parcellation_volumes.csv',...COMMON_OF],od:['annotations_compressed.ome.zarr','annotations_smooth.precomputed'],
+    cf:['processing.json'],
     pat:[/^annotations_compressed_[A-Za-z0-9.]+\.nii\.gz$/],sfx:'-annotation',rex:null,extra:false,
+    mk:['name','version','location','schema_version','described_by','coordinate_space','terminology'],
   },
   'terminologies':{
     rf:['data_description.json','manifest.json','terminology.csv'],rd:[],
-    of:['terminology.parquet'],od:['legacy_files'],cf:[],
+    of:['terminology.parquet',...COMMON_OF],od:['legacy_files'],cf:[],
     pat:[],sfx:'-terminology',rex:null,extra:false,
+    mk:['name','version','location','schema_version','described_by'],
   },
   'coordinate-spaces':{
-    rf:['data_description.json','manifest.json'],rd:[],of:[],od:[],cf:[],
+    rf:['data_description.json','manifest.json'],rd:[],of:[...COMMON_OF],od:[],cf:[],
     pat:[],sfx:'-space',rex:null,extra:false,
+    mk:['name','version','location','schema_version','described_by','origin','template'],
   },
   'coordinate-transformations':{
-    rf:['data_description.json','manifest.json'],rd:[],of:[],od:['coordinate_transformations.ome.zarr'],cf:['processing.json'],
+    rf:['data_description.json','manifest.json'],rd:[],of:[...COMMON_OF],od:['coordinate_transformations.ome.zarr'],cf:['processing.json'],
     pat:[],sfx:null,rex:/.+_to_.+/,extra:true,
+    mk:['source','target','directionality','described_by'],
   },
 };
 const VER_RE = /^(\d{4}(-\d{2})?|\d+\.\d+\.\d+|v\d+.*)$/;
@@ -880,7 +892,11 @@ async function enumerate(bucket, region, rootPrefix) {
   await Promise.all(targets.map(({key,vd,field}) =>
     fetchJSON(base, key)
       .then(j => { vd[field] = j; })
-      .catch(() => { vd[field] = null; })
+      .catch(e => {
+        vd[field] = null;
+        // A parse failure is a finding; a network failure is not.
+        if (e instanceof SyntaxError) (vd.badJson ||= []).push(key.split('/').pop());
+      })
       .finally(() => { prog(`Fetching metadata… (${++mfDone}/${mfTotal})`); })
   ));
 
@@ -888,9 +904,10 @@ async function enumerate(bucket, region, rootPrefix) {
 }
 
 /* ── Validation ──────────────────────────────────────── */
-function validate(typeKey, assetName, version, files, dirs) {
+function validate(typeKey, assetName, version, vd) {
   const sp = SPEC[typeKey];
   if (!sp) return {errors:[`Unknown type: ${typeKey}`],warnings:[]};
+  const {files, dirs} = vd;
   const fs = new Set(files), ds = new Set(dirs);
   const errors=[], warnings=[];
   for (const f of sp.rf) if (!fs.has(f)) errors.push(`Missing required file: ${f}`);
@@ -904,6 +921,14 @@ function validate(typeKey, assetName, version, files, dirs) {
     for (const f of files) if (!kf.has(f) && !sp.pat.some(p=>p.test(f))) warnings.push(`Unexpected file: ${f}`);
     const kd = new Set([...sp.rd,...sp.od]);
     for (const d of dirs) if (!kd.has(d)) warnings.push(`Unexpected directory: ${d}/`);
+  }
+  for (const f of vd.badJson || [])
+    if (sp.rf.includes(f)) errors.push(`File is not valid JSON: ${f}`);
+  const m = vd.manifest;
+  if (m != null) {
+    if (typeof m !== 'object' || Array.isArray(m)) warnings.push('manifest.json is not a JSON object');
+    else for (const k of [...sp.mk].sort())
+      if (!(k in m)) warnings.push(`manifest.json is missing the minimal key '${k}'`);
   }
   return {errors,warnings};
 }
@@ -1495,7 +1520,7 @@ function process(tree, rootWarnings) {
     for (const [an,vers] of Object.entries(assets)) {
       for (const [v,vd] of Object.entries(vers)) {
         tv++;
-        const {errors,warnings} = validate(tk,an,v,vd.files,vd.dirs);
+        const {errors,warnings} = validate(tk,an,v,vd);
         vd.val = {errors,warnings};
         vd.details = classify(tk,vd.files,vd.dirs);
         vd.facets = facetsOf(vd.dd);
@@ -1627,6 +1652,7 @@ function normalizeTree(raw) {
           dirs:  Array.isArray(vd.dirs)  ? vd.dirs  : [],
           manifest: vd.manifest ?? null,
           dd:       vd.dd ?? null,
+          ...(Array.isArray(vd.badJson) && vd.badJson.length ? {badJson: vd.badJson} : {}),
         };
       }
     }
@@ -1666,7 +1692,8 @@ function showExport() {
       for (const [an,vers] of Object.entries(assets)) {
         slim[tk][an] = {};
         for (const [v,vd] of Object.entries(vers)) {
-          slim[tk][an][v] = {files:vd.files, dirs:vd.dirs, manifest:vd.manifest ?? null, dd:vd.dd ?? null};
+          slim[tk][an][v] = {files:vd.files, dirs:vd.dirs, manifest:vd.manifest ?? null, dd:vd.dd ?? null,
+                             ...(vd.badJson?.length ? {badJson: vd.badJson} : {})};
         }
       }
     }
@@ -2109,7 +2136,7 @@ function rowData(tk, name, versions) {
     modality: (vd.facets?.modality || []),
     institution: (dd.institution||{}).abbreviation || (dd.institution||{}).name || '',
     created: String(dd.creation_time||'').slice(0,10),
-    scales: (vd.manifest?.scales || []).join(', '),
+    scales: (vd.manifest?.scales || []).map(s => Array.isArray(s) ? s.join('×') : s).join(', '),
     project: dd.project_name || '',
   };
 }
@@ -2281,7 +2308,7 @@ function body(tk, name, version, vd) {
       <div>
         <div class="sec-lbl">Contents</div>
         ${browser}
-        ${findings?`<div class="findings">${findings}</div>`:''}
+        ${findings?`<div class="findings" title="Checked against atlas-assets spec v${SPEC_VERSION}">${findings}</div>`:''}
       </div>
       <div>
         <div class="sec-lbl">Manifest</div>
@@ -2298,7 +2325,7 @@ function body(tk, name, version, vd) {
    Text files in the Contents browser open in a dialog: JSON pretty-printed
    and lightly coloured, CSV as a table. Binary volumes are not previewable
    and stay plain text in the listing. */
-const PREVIEWABLE = new Set(['json','csv','tsv','txt','md','log','yaml','yml']);
+const PREVIEWABLE = new Set(['json','csv','tsv','txt','md','log','yaml','yml','cff']);
 const extOf = n => String(n).toLowerCase().split('.').pop();
 const isPreviewable = f => !f.is_dir && !f.absent && PREVIEWABLE.has(extOf(f.name));
 
@@ -2475,6 +2502,23 @@ function renderProv(dd) {
                      : '<span style="font-size:12px;color:var(--ink-3)">Empty</span>';
 }
 
+/* `described_by` names the spec page the manifest was written against, e.g.
+   https://atlas-assets.readthedocs.io/en/v0.2.0/atlas.html → "v0.2.0 · atlas". */
+function specLink(url) {
+  const s = String(url);
+  if (!/^https?:\/\//i.test(s)) return esc(s);
+  const m = s.match(/\/en\/([^/]+)\/([^/?#]+?)(?:\.html)?(?:[?#].*)?$/);
+  const label = m ? `${m[1]} · ${m[2]}` : s;
+  return `<a class="loc loc-sm" href="${esc(s)}" target="_blank" rel="noopener"
+    title="${esc(s)}">${esc(label)}</a>`;
+}
+
+/* Scales are voxel spacings in µm: a number when isotropic, a per-axis list
+   when not (spec v0.2.1), e.g. [10, 25, [10, 10, 100]] → "10, 25, 10×10×100 µm". */
+const fmtScales = scales => scales.length
+  ? scales.map(s => Array.isArray(s) ? s.join('×') : String(s)).join(', ') + ' µm'
+  : '';
+
 function renderMf(m) {
   if (!m||typeof m!=='object') return '<span style="color:var(--ink-3);font-size:12px">Invalid manifest</span>';
   const rows=[];
@@ -2492,12 +2536,14 @@ function renderMf(m) {
   };
 
   if (m.schema_version)     kv('schema_version', esc(m.schema_version));
+  if (m.described_by)       kv('described_by', specLink(m.described_by));
   if (m.coordinate_space)   kv('coordinate_space', ref(m.coordinate_space));
   if (m.templates?.length)  kv('templates', m.templates.map(ref).join(' '));
   if (m.annotation_sets?.length) kv('annotation_sets', m.annotation_sets.map(ref).join(' '));
   if (m.terminology)        kv('terminology', ref(m.terminology));
   if (m.template&&!m.templates) kv('template', ref(m.template));
-  if (m.scales?.length)     kv('scales', esc(m.scales.map(s=>`${s}µm`).join(', ')));
+  if (Array.isArray(m.origin)) kv('origin', esc(`[${m.origin.join(', ')}]`));
+  if (m.scales?.length)     kv('scales', esc(fmtScales(m.scales)));
   if (m.input_template)     kv('input_template',  ref(m.input_template));
   if (m.output_template)    kv('output_template', ref(m.output_template));
   if (m.source)             kv('source', ref(m.source));
