@@ -25,6 +25,9 @@ browser with unsigned S3 requests.
 Supported asset types: `atlases`, `templates`, `annotation-sets`,
 `terminologies`, `coordinate-spaces`, `coordinate-transformations`.
 
+Spec: [documentation](https://atlas-assets.readthedocs.io/en/latest/) ·
+[GitHub](https://github.com/AllenNeuralDynamics/atlas-assets)
+
 ## Usage
 
 Enter an `s3://bucket/prefix` and press Load. Leave the region blank unless
