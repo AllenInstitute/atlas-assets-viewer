@@ -609,7 +609,7 @@ button.chip:hover{border-color:var(--accent);color:var(--accent)}
     <div class="uri-wrap">
       <span class="uri-prefix">s3://</span>
       <input class="uri-in" id="uri-in" type="text"
-        value="aind-scratch-data/david.feng/allen-atlas-assets-rc13"
+        value="allen-atlas-assets"
         spellcheck="false" autocomplete="off">
     </div>
     <input class="rgn-sel" id="rgn-sel" list="rgn-list" value="" placeholder="region: auto"
@@ -944,7 +944,7 @@ function classify(typeKey, files, dirs) {
      #/atlases/allen-adult-mouse-ccf-atlas/2017?filter=modality:SPIM&q=ccf
    `store` is carried only when it differs from the one this page would
    pick on its own, so ordinary links stay short. */
-const DEFAULT_STORE = 'aind-scratch-data/david.feng/allen-atlas-assets-rc13';
+const DEFAULT_STORE = 'allen-atlas-assets';
 let hashLock = false;
 
 function autoStore() {
