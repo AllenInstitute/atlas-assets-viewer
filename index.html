@@ -1,0 +1,2541 @@
+<!doctype html>
+<title>Atlas Assets</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=DM+Sans:ital,wght@0,400;0,500;1,400&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* ── Tokens ──────────────────────────────────────────── */
+:root {
+  --ink:        #12202E;
+  --ink-2:      #3D5266;
+  --ink-3:      #6E8090;
+  --ground:     #F3F6FA;
+  --surface:    #FFFFFF;
+  --border:     #D8E2EC;
+  --border-2:   #EBF1F7;
+  --accent:     #1480A4;
+  --accent-lt:  #E0F1F9;
+  --ok:         #16A34A;
+  --ok-lt:      #DCFCE7;
+  --warn:       #9A6700;
+  --warn-lt:    #FEF3C7;
+  --err:        #DC2626;
+  --err-lt:     #FEE2E2;
+  --r:          6px;
+  --r-sm:       4px;
+  --hdr:        56px;
+  --sb:         224px;
+  /* Data-mark hue. Stepped per surface and validated (lightness band,
+     chroma floor, >=3:1 contrast) — the UI accent is too light to be a
+     bar fill on the dark surface, so it is not reused here. */
+  --viz-bar:    #1480A4;
+  --viz-track:  #E7EEF4;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink:       #C8DDE9; --ink-2:    #7FA6BF; --ink-3:    #4E7189;
+    --ground:    #0B1722; --surface:  #132030; --border:   #1C3248; --border-2: #152A3E;
+    --accent:    #40BCD8; --accent-lt:#092637;
+    --ok:        #4ADE80; --ok-lt:    #042B16;
+    --warn:      #FBBF24; --warn-lt:  #1E1000;
+    --err:       #F87171; --err-lt:   #2A0808;
+    --viz-bar:   #2596B4; --viz-track:#1A2C3E;
+  }
+}
+:root[data-theme="dark"] {
+  --ink:       #C8DDE9; --ink-2:    #7FA6BF; --ink-3:    #4E7189;
+  --ground:    #0B1722; --surface:  #132030; --border:   #1C3248; --border-2: #152A3E;
+  --accent:    #40BCD8; --accent-lt:#092637;
+  --ok:        #4ADE80; --ok-lt:    #042B16;
+  --warn:      #FBBF24; --warn-lt:  #1E1000;
+  --err:       #F87171; --err-lt:   #2A0808;
+  --viz-bar:   #2596B4; --viz-track:#1A2C3E;
+}
+
+/* ── Reset ───────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px;-webkit-font-smoothing:antialiased}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--ink);background:var(--ground);min-height:100vh}
+button{font:inherit;cursor:pointer;border:none;background:none}
+input,select{font:inherit}
+ul{list-style:none}
+
+/* ── Header ──────────────────────────────────────────── */
+.hdr{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  height:var(--hdr);background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:14px;padding:0 20px;
+}
+.logo{
+  font-family:'Archivo',system-ui,sans-serif;font-size:16px;font-weight:700;
+  letter-spacing:-.02em;color:var(--ink);flex-shrink:0;
+}
+.logo b{color:var(--accent)}
+
+.hdr-form{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.uri-wrap{
+  flex:1;display:flex;align-items:center;gap:6px;min-width:0;
+  background:var(--ground);border:1px solid var(--border);border-radius:var(--r);padding:0 10px;
+}
+.uri-prefix{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-3);flex-shrink:0}
+.uri-in{
+  flex:1;border:none;background:transparent;color:var(--ink);
+  font-family:'DM Mono',monospace;font-size:12.5px;padding:7px 0;outline:none;min-width:0;
+}
+.rgn-sel{
+  border:1px solid var(--border);border-radius:var(--r);background:var(--ground);
+  color:var(--ink);font-family:'DM Mono',monospace;font-size:11px;padding:6px 8px;outline:none;flex-shrink:0;
+}
+.load-btn{
+  padding:6px 16px;background:var(--accent);color:#fff;border-radius:var(--r);
+  font-size:13px;font-weight:500;flex-shrink:0;transition:opacity .15s;
+}
+.load-btn:hover{opacity:.85}
+.load-btn:disabled{opacity:.5;cursor:not-allowed}
+
+.hdr-stats{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.pill{
+  display:flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;
+  font-size:11.5px;font-weight:500;font-variant-numeric:tabular-nums;
+}
+.pill.n  {background:var(--ground);color:var(--ink-2);border:1px solid var(--border)}
+.pill.ok {background:var(--ok-lt);color:var(--ok)}
+.pill.w  {background:var(--warn-lt);color:var(--warn)}
+.pill.e  {background:var(--err-lt);color:var(--err)}
+
+/* ── Shell ───────────────────────────────────────────── */
+.shell{display:flex;padding-top:var(--hdr);height:100vh}
+
+/* ── Sidebar ─────────────────────────────────────────── */
+.sb{
+  width:var(--sb);flex-shrink:0;
+  background:var(--surface);border-right:1px solid var(--border);
+  overflow-y:auto;padding:10px 0;
+}
+.sb-label{
+  font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);padding:8px 16px 4px;
+}
+.type-btn{
+  display:flex;align-items:center;gap:10px;
+  width:100%;padding:8px 16px;font-size:13px;color:var(--ink-2);
+  transition:background .12s;text-align:left;position:relative;
+}
+.type-btn:hover{background:var(--ground);color:var(--ink)}
+.type-btn.on{background:var(--accent-lt);color:var(--accent);font-weight:500}
+.type-btn.on::before{
+  content:'';position:absolute;left:0;top:4px;bottom:4px;
+  width:3px;background:var(--accent);border-radius:0 2px 2px 0;
+}
+.type-icon{font-size:14px;flex-shrink:0;opacity:.85}
+.type-name{flex:1}
+.type-ct{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-3);flex-shrink:0}
+.type-btn.on .type-ct{color:var(--accent)}
+.err-dot{width:6px;height:6px;border-radius:50%;background:var(--err);flex-shrink:0}
+.type-btn.dim{opacity:.42}
+
+/* ── Main ────────────────────────────────────────────── */
+.main{flex:1;overflow-y:auto;padding:18px 22px;min-width:0}
+
+.main-hdr{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.main-title{font-family:'Archivo',system-ui,sans-serif;font-size:15px;font-weight:700;letter-spacing:-.01em}
+.srch{
+  flex:1;display:flex;align-items:center;gap:6px;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:0 10px;
+}
+.srch-ico{color:var(--ink-3);font-size:13px}
+.srch-in{
+  flex:1;border:none;background:transparent;color:var(--ink);
+  font-size:13px;padding:7px 0;outline:none;
+}
+.srch-in::placeholder{color:var(--ink-3)}
+
+/* ── Index table ─────────────────────────────────────── */
+.list-count{
+  font-size:11px;color:var(--ink-3);flex-shrink:0;
+  font-variant-numeric:tabular-nums;
+}
+.tbl-wrap{
+  overflow-x:auto;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--r);
+}
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.tbl thead th{
+  text-align:left;font-size:9.5px;font-weight:600;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);
+  padding:9px 12px;border-bottom:1px solid var(--border);
+  white-space:nowrap;background:var(--surface);
+  position:sticky;top:0;z-index:1;
+}
+.tbl td{padding:0 12px;border-bottom:1px solid var(--border-2);height:38px;vertical-align:middle}
+.tbl tbody tr:last-child td{border-bottom:none}
+.tbl tbody tr{cursor:pointer;transition:background .1s}
+.tbl tbody tr:hover{background:var(--accent-lt)}
+.tbl tbody tr:hover .row-link{color:var(--accent)}
+.c-st{width:26px;text-align:center;font-size:12px}
+.c-name{font-family:'DM Mono',monospace;font-size:12px;font-weight:500;max-width:340px}
+.row-link{color:var(--ink);text-decoration:none;display:block;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.c-dim{color:var(--ink-2);white-space:nowrap}
+.c-num{font-variant-numeric:tabular-nums;font-size:11.5px}
+.c-mod{white-space:nowrap}
+.c-vers{white-space:nowrap;text-align:right}
+.tag{
+  display:inline-block;font-size:10px;padding:1px 6px;border-radius:10px;
+  background:var(--ground);border:1px solid var(--border);color:var(--ink-2);
+}
+
+/* ── Asset page ──────────────────────────────────────── */
+.crumbs{display:flex;align-items:center;gap:7px;font-size:12px;margin-bottom:10px}
+.crumbs a{color:var(--accent);text-decoration:none}
+.crumbs a:hover{text-decoration:underline}
+.crumb-sep{color:var(--ink-3)}
+.crumb-cur{color:var(--ink-3);font-family:'DM Mono',monospace;font-size:11.5px}
+.asset-hd{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+.asset-title{
+  font-family:'Archivo',system-ui,sans-serif;font-size:19px;font-weight:700;
+  letter-spacing:-.01em;color:var(--ink);
+}
+.asset-path{font-family:'DM Mono',monospace;font-size:11px;margin-bottom:18px}
+.loc{
+  color:var(--ink-3);text-decoration:none;
+  border-bottom:1px solid transparent;overflow-wrap:anywhere;
+}
+.loc:hover{color:var(--accent);border-bottom-color:var(--accent)}
+/* In the manifest panel the location sits beside the reference chips, so
+   it wears the same chip. */
+.loc-sm{
+  font-family:'DM Mono',monospace;font-size:10.5px;
+  background:var(--accent-lt);color:var(--accent);
+  padding:1px 5px;border-radius:3px;display:inline-block;
+  border-bottom:none;line-height:1.5;
+}
+.loc-sm:hover{background:var(--accent);color:#fff;border-bottom:none}
+a.vpill{text-decoration:none;display:inline-block}
+
+/* ── Asset card ──────────────────────────────────────── */
+.asset-list{display:flex;flex-direction:column;gap:5px}
+
+.card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  overflow:hidden;transition:border-color .15s;
+}
+.card:hover{border-color:var(--accent)}
+
+.card-hd{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;cursor:pointer;user-select:none;
+}
+.chev{font-size:9px;color:var(--ink-3);flex-shrink:0;transition:transform .18s;width:12px;text-align:center}
+.card.open .chev{transform:rotate(90deg)}
+
+.aname{
+  font-family:'DM Mono',monospace;font-size:12.5px;font-weight:500;
+  flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+
+.vpills{display:flex;gap:3px;flex-shrink:0}
+.vpill{
+  font-family:'DM Mono',monospace;font-size:10.5px;
+  padding:2px 6px;border-radius:3px;border:1px solid var(--border);
+  color:var(--ink-2);cursor:pointer;white-space:nowrap;transition:all .12s;
+}
+.vpill:hover{border-color:var(--accent);color:var(--accent)}
+.vpill.sel{background:var(--accent);border-color:var(--accent);color:#fff}
+.vpill.ve{border-color:var(--err);color:var(--err)}
+.vpill.vw{border-color:var(--warn);color:var(--warn)}
+.vpill.ve.sel{background:var(--err);border-color:var(--err);color:#fff}
+.vpill.vw.sel{background:var(--warn);border-color:var(--warn);color:#fff}
+
+.ast-st{display:flex;align-items:center;gap:3px;font-size:11px;flex-shrink:0}
+.st-ok{color:var(--ok)}.st-w{color:var(--warn)}.st-e{color:var(--err)}
+
+/* ── Card body ───────────────────────────────────────── */
+.card-bd{border-top:1px solid var(--border-2);padding:14px 16px;display:none}
+.card.open .card-bd{display:block}
+
+.cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+@media(max-width:1180px){.cols{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:780px){.cols{grid-template-columns:minmax(0,1fr)}}
+
+.sec-lbl{
+  font-size:10px;font-weight:600;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:7px;
+}
+
+/* Files */
+.fb{border:1px solid var(--border-2);border-radius:var(--r-sm);overflow:hidden}
+.fb-root{
+  display:flex;align-items:center;gap:7px;padding:7px 10px;
+  background:var(--ground);border-bottom:1px solid var(--border-2);
+}
+.fb-ico{font-size:12px;line-height:1;flex-shrink:0}
+.fb-path{
+  font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-2);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.flist{display:flex;flex-direction:column;gap:1px;padding:6px 8px 7px}
+.frow{
+  display:flex;align-items:center;gap:7px;font-family:'DM Mono',monospace;
+  font-size:12px;padding:2px 6px;border-radius:3px;
+  margin-left:9px;border-left:1px solid var(--border-2);padding-left:11px;
+}
+.frow:hover{background:var(--ground)}
+.fico{width:15px;text-align:center;flex-shrink:0;font-size:11px;line-height:1}
+.fico.abs{opacity:.4;filter:grayscale(1)}
+.fstat{
+  width:11px;text-align:center;flex-shrink:0;font-size:10.5px;line-height:1;
+}
+.fstat.ok{color:var(--ok)}
+.fstat.e{color:var(--err)}
+.fname{flex:1;color:var(--ink)}
+.fname.abs{color:var(--ink-3);text-decoration:line-through}
+.frole{
+  font-size:10px;color:var(--ink-3);
+  padding:1px 4px;border-radius:2px;background:var(--border-2);flex-shrink:0;
+}
+.frole.rm{background:var(--err-lt);color:var(--err)}
+
+/* Text files in Contents open a preview */
+button.fname{
+  /* hug the text: .fname sets flex:1 to push the role badge right, which on
+     a button would stretch the hover underline across the whole row */
+  flex:0 1 auto;margin-right:auto;max-width:100%;
+  background:none;border:none;padding:0;font:inherit;text-align:left;
+  color:var(--accent);cursor:pointer;border-bottom:1px solid transparent;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+button.fname:hover{border-bottom-color:var(--accent)}
+
+.pv-dlg{
+  /* the global `* { margin:0 }` reset kills the UA's margin:auto, which is
+     what centres a modal dialog — restore it explicitly */
+  margin:auto;
+  border:1px solid var(--border);border-radius:var(--r);padding:0;
+  background:var(--surface);color:var(--ink);
+  width:fit-content;min-width:min(440px,92vw);max-width:min(1040px,92vw);
+  max-height:86vh;
+}
+.pv-dlg::backdrop{background:rgba(8,16,24,.55)}
+.pv-hd{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:11px 14px;border-bottom:1px solid var(--border);
+}
+.pv-name{font-family:'DM Mono',monospace;font-size:12.5px;font-weight:500}
+.pv-meta{font-size:10.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.pv-actions{margin-left:auto;display:flex;gap:6px;align-items:center}
+.pv-raw{
+  font-size:11.5px;color:var(--ink-2);text-decoration:none;
+  border:1px solid var(--border);border-radius:var(--r-sm);padding:3px 9px;
+}
+.pv-raw:hover{border-color:var(--accent);color:var(--accent)}
+.pv-close{
+  font-size:15px;line-height:1;color:var(--ink-2);
+  border:1px solid var(--border);border-radius:var(--r-sm);padding:2px 9px;
+}
+.pv-close:hover{border-color:var(--accent);color:var(--accent)}
+.pv-body{overflow:auto;max-height:74vh;padding:12px 14px}
+.pv-pre{
+  font-family:'DM Mono',monospace;font-size:11.5px;line-height:1.55;
+  white-space:pre;color:var(--ink);
+}
+.pv-pre .k{color:var(--accent)}
+.pv-pre .s{color:var(--ok)}
+.pv-pre .n{color:var(--warn)}
+.pv-pre .b{color:var(--ink-3)}
+.pv-tbl{border-collapse:collapse;font-size:11.5px;font-family:'DM Mono',monospace}
+.pv-tbl th,.pv-tbl td{
+  border:1px solid var(--border-2);padding:3px 8px;
+  text-align:left;white-space:nowrap;max-width:340px;overflow:hidden;text-overflow:ellipsis;
+}
+.pv-tbl th{background:var(--ground);color:var(--ink-2);position:sticky;top:0}
+.pv-note{font-size:11px;color:var(--ink-3);margin-top:10px}
+
+/* Findings */
+.findings{display:flex;flex-direction:column;gap:3px;margin-top:8px}
+.finding{
+  font-size:11.5px;padding:4px 8px;border-radius:var(--r-sm);
+  display:flex;align-items:flex-start;gap:6px;line-height:1.4;
+}
+.finding.e{background:var(--err-lt);color:var(--err)}
+.finding.w{background:var(--warn-lt);color:var(--warn)}
+
+/* Manifest */
+.mkv{display:flex;flex-direction:column;gap:5px}
+.kvrow{display:flex;gap:8px;font-size:12px;align-items:baseline}
+.kvk{font-family:'DM Mono',monospace;font-size:10.5px;color:var(--ink-3);flex-shrink:0;min-width:116px}
+.kvv{color:var(--ink);line-height:1.4}
+.ref{
+  font-family:'DM Mono',monospace;font-size:10.5px;
+  background:var(--accent-lt);color:var(--accent);
+  padding:1px 5px;border-radius:3px;display:inline-block;
+  text-decoration:none;
+}
+a.ref:hover{background:var(--accent);color:#fff}
+.ref-dead{
+  background:var(--border-2);color:var(--ink-3);
+  text-decoration:line-through;
+}
+
+/* ── States ──────────────────────────────────────────── */
+.state{text-align:center;padding:64px 24px;color:var(--ink-3)}
+.state h2{font-family:'Archivo',system-ui,sans-serif;font-size:17px;color:var(--ink-2);margin-bottom:8px}
+.state p{font-size:13px;line-height:1.6;max-width:440px;margin:0 auto}
+.state code{font-family:'DM Mono',monospace;font-size:11px;background:var(--border-2);padding:1px 4px;border-radius:3px}
+.spinner{
+  display:inline-block;width:18px;height:18px;
+  border:2px solid var(--border);border-top-color:var(--accent);
+  border-radius:50%;animation:spin .8s linear infinite;margin-bottom:10px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.prog-msg{font-size:12px;color:var(--ink-3);margin-top:6px}
+
+/* ── Drop zone ───────────────────────────────────────── */
+.drop-zone{
+  border:2px dashed var(--border);border-radius:var(--r);
+  padding:24px;text-align:center;margin-top:20px;
+  cursor:pointer;transition:border-color .15s;
+}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--accent)}
+.drop-zone p{font-size:12px;color:var(--ink-3)}
+.drop-zone label{cursor:pointer;color:var(--accent);text-decoration:underline}
+
+/* ── Root banner ─────────────────────────────────────── */
+.rbanner{
+  background:var(--warn-lt);border:1px solid var(--warn);border-radius:var(--r);
+  padding:10px 14px;color:var(--warn);font-size:12px;margin-bottom:12px;
+  display:flex;gap:8px;align-items:flex-start;
+}
+.rbanner ul{margin-top:3px;padding-left:14px}
+.rbanner li{margin-top:2px;font-family:'DM Mono',monospace;font-size:11px}
+
+/* ── Provenance (data_description) ───────────────────── */
+.lede{
+  font-size:13px;line-height:1.62;color:var(--ink-2);
+  max-width:68ch;margin-bottom:14px;
+}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px}
+.chip{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;padding:2px 8px;border-radius:20px;
+  border:1px solid var(--border);color:var(--ink-2);background:var(--ground);
+  transition:border-color .12s,color .12s;
+}
+button.chip{cursor:pointer}
+button.chip:hover{border-color:var(--accent);color:var(--accent)}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip-k{
+  font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ink-3);
+}
+.chip.on .chip-k{color:#fff;opacity:.75}
+
+.prov{display:flex;flex-direction:column;gap:6px}
+.prow{display:flex;gap:8px;font-size:12px;align-items:baseline}
+.pk{
+  font-family:'DM Mono',monospace;font-size:10.5px;color:var(--ink-3);
+  flex-shrink:0;min-width:88px;
+}
+.pv{color:var(--ink);line-height:1.45;min-width:0;word-break:break-word}
+.pv a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent}
+.pv a:hover{border-bottom-color:var(--accent)}
+.orcid{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-3)}
+
+/* ── Neuroglancer links ──────────────────────────────── */
+.ng-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;align-items:center}
+.ng-link{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:11.5px;padding:4px 10px;border-radius:var(--r-sm);
+  border:1px solid var(--accent);color:var(--accent);text-decoration:none;
+  background:var(--accent-lt);transition:background .12s,color .12s;
+}
+.ng-link:hover{background:var(--accent);color:#fff}
+.ng-ico{font-size:11px}
+.ng-note{font-size:10.5px;color:var(--ink-3)}
+.ng-fmt{
+  font-size:10px;padding:0 5px;margin-left:2px;border-radius:8px;
+  background:color-mix(in srgb, currentColor 14%, transparent);
+}
+
+/* ── Terminology tree ────────────────────────────────── */
+.tree-bar{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.tree-btn{
+  font-size:11.5px;padding:4px 10px;border-radius:var(--r-sm);
+  border:1px solid var(--border);color:var(--ink-2);background:var(--ground);
+}
+.tree-btn:hover{border-color:var(--accent);color:var(--accent)}
+.tree-srch{
+  flex:1;min-width:140px;max-width:280px;
+  background:var(--ground);border:1px solid var(--border);border-radius:var(--r-sm);
+  padding:4px 9px;font-size:11.5px;color:var(--ink);outline:none;
+}
+.tree-srch::placeholder{color:var(--ink-3)}
+.tree-meta{font-size:10.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+
+.tree{
+  max-height:420px;overflow:auto;
+  border:1px solid var(--border-2);border-radius:var(--r-sm);
+  padding:6px 4px;background:var(--ground);
+}
+.tnode{display:flex;align-items:center;gap:6px;padding:2px 4px;border-radius:3px;line-height:1.35}
+.tnode:hover{background:var(--surface)}
+.tnode.hit{background:var(--accent-lt)}
+.ttw{
+  width:13px;flex-shrink:0;text-align:center;font-size:8px;color:var(--ink-3);
+  cursor:pointer;user-select:none;background:none;border:none;padding:0;
+}
+.ttw.leaf{visibility:hidden}
+.tswatch{
+  width:9px;height:9px;border-radius:2px;flex-shrink:0;
+  border:1px solid rgba(128,128,128,.35);
+}
+.tabbr{
+  font-family:'DM Mono',monospace;font-size:10.5px;color:var(--ink);
+  flex-shrink:0;font-weight:500;
+}
+.tname{font-size:11.5px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tval{
+  font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-3);
+  margin-left:auto;flex-shrink:0;padding-left:8px;
+}
+.tkids{margin-left:13px;border-left:1px solid var(--border-2);padding-left:3px}
+
+/* ── Overview ────────────────────────────────────────── */
+.ov{display:flex;flex-direction:column;gap:18px;max-width:1080px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tile{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:12px 14px;
+}
+.tile-k{
+  font-size:9.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--ink-3);margin-bottom:5px;
+}
+.tile-v{
+  font-family:'Archivo',system-ui,sans-serif;font-size:24px;font-weight:700;
+  color:var(--ink);line-height:1;font-variant-numeric:tabular-nums;
+}
+.tile-sub{font-size:11px;color:var(--ink-3);margin-top:4px}
+
+.panels{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:12px}
+.panel{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:14px 16px;
+}
+.panel-h{display:flex;align-items:baseline;gap:8px;margin-bottom:12px}
+.panel-t{font-size:12.5px;font-weight:600;color:var(--ink)}
+.panel-n{font-size:10.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+
+/* Horizontal bars: one series (counts), so one hue — the category
+   labels carry identity and every bar is directly labelled. */
+.bars{display:flex;flex-direction:column;gap:6px}
+.bar-row{
+  /* Cap the label column so a long name can't squeeze the track to a sliver;
+     the full text stays available via the row's title. */
+  display:grid;grid-template-columns:minmax(64px,168px) 1fr auto;
+  align-items:center;gap:9px;width:100%;
+  background:none;border:none;padding:2px 0;text-align:left;cursor:pointer;
+  border-radius:var(--r-sm);
+}
+.bar-row:hover .bar-fill{filter:brightness(1.12)}
+.bar-row:hover .bar-l{color:var(--ink)}
+.bar-l{
+  font-size:11.5px;color:var(--ink-2);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;transition:color .12s;
+}
+.bar-track{
+  position:relative;height:9px;background:var(--viz-track);
+  border-radius:0 var(--r-sm) var(--r-sm) 0;
+}
+.bar-fill{
+  position:absolute;inset:0 auto 0 0;height:100%;
+  background:var(--viz-bar);border-radius:0 var(--r-sm) var(--r-sm) 0;
+  min-width:2px;transition:filter .12s;
+}
+.bar-v{
+  font-size:11px;color:var(--ink-2);font-variant-numeric:tabular-nums;
+  min-width:26px;text-align:right;
+}
+.bar-row.on .bar-l{color:var(--accent);font-weight:500}
+.bar-row.on .bar-v{color:var(--accent)}
+
+/* Constants: one value holding across every asset */
+.consts{display:flex;flex-direction:column;gap:7px}
+.crow{display:flex;align-items:center;gap:8px;font-size:12px}
+.ck{font-family:'DM Mono',monospace;font-size:10.5px;color:var(--ink-3);min-width:104px}
+.cv{font-family:'DM Mono',monospace;font-size:11.5px;color:var(--ink)}
+.cbadge{
+  font-size:10px;padding:1px 6px;border-radius:10px;
+  background:var(--ok-lt);color:var(--ok);margin-left:auto;
+}
+.cbadge.split{background:var(--warn-lt);color:var(--warn)}
+
+/* ── Facet filter pill ───────────────────────────────── */
+.fbar{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  background:var(--accent-lt);border:1px solid var(--accent);
+  border-radius:var(--r);padding:7px 12px;margin-bottom:14px;
+}
+.fbar-t{font-size:12px;color:var(--accent)}
+.fbar-t b{font-weight:600}
+.fclear{
+  margin-left:auto;font-size:11.5px;color:var(--accent);
+  border:1px solid var(--accent);border-radius:var(--r-sm);padding:2px 9px;
+}
+.fclear:hover{background:var(--accent);color:#fff}
+
+/* ── Export ──────────────────────────────────────────── */
+.export-btn{
+  padding:5px 12px;border:1px solid var(--border);border-radius:var(--r);
+  background:var(--ground);color:var(--ink-2);font-size:12px;flex-shrink:0;
+  transition:border-color .12s,color .12s;
+}
+.export-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── Focus ───────────────────────────────────────────── */
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.card-hd:focus-visible{outline-offset:-2px}
+
+/* ── Reduced motion ──────────────────────────────────── */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+</style>
+
+<div class="hdr">
+  <div class="logo">Atlas<b>.</b>Assets</div>
+  <form class="hdr-form" id="load-form">
+    <div class="uri-wrap">
+      <span class="uri-prefix">s3://</span>
+      <input class="uri-in" id="uri-in" type="text"
+        value="aind-scratch-data/david.feng/allen-atlas-assets-rc13"
+        spellcheck="false" autocomplete="off">
+    </div>
+    <input class="rgn-sel" id="rgn-sel" list="rgn-list" value="" placeholder="region: auto"
+      title="Leave blank to let S3 route automatically. Set one only for opt-in regions."
+      aria-label="AWS region (optional)" spellcheck="false" autocomplete="off" size="14">
+    <datalist id="rgn-list">
+      <option value="us-west-2"></option><option value="us-west-1"></option>
+      <option value="us-east-1"></option><option value="us-east-2"></option>
+      <option value="eu-west-1"></option><option value="eu-central-1"></option>
+      <option value="ap-southeast-2"></option><option value="ap-northeast-1"></option>
+    </datalist>
+    <button class="load-btn" id="load-btn" type="submit">Load</button>
+  </form>
+  <div class="hdr-stats" id="hdr-stats"></div>
+  <button class="export-btn" id="export-btn" hidden>Export</button>
+</div>
+
+<div class="shell">
+  <nav class="sb" id="sb"></nav>
+  <main class="main" id="main">
+    <div class="state" id="init-state">
+      <div class="spinner"></div>
+      <h2>Fetching bucket…</h2>
+      <p class="prog-msg" id="prog-msg">Connecting to S3…</p>
+    </div>
+  </main>
+</div>
+
+<script>
+/* ── Spec ────────────────────────────────────────────── */
+const TYPE_ORDER = ['atlases','templates','annotation-sets','terminologies','coordinate-spaces','coordinate-transformations'];
+const TYPE_META  = {
+  'atlases':                   {label:'Atlases',               icon:'🗺'},
+  'templates':                 {label:'Templates',              icon:'🖼'},
+  'annotation-sets':           {label:'Annotation Sets',        icon:'🏷'},
+  'terminologies':             {label:'Terminologies',          icon:'📖'},
+  'coordinate-spaces':         {label:'Coordinate Spaces',      icon:'📐'},
+  'coordinate-transformations':{label:'Transformations',        icon:'↔'},
+};
+const SPEC = {
+  'atlases':{
+    rf:['data_description.json','manifest.json'],rd:[],of:[],od:[],cf:[],
+    pat:[],sfx:'-atlas',rex:null,extra:false,
+  },
+  'templates':{
+    rf:['data_description.json','manifest.json'],rd:['template.ome.zarr'],of:[],od:[],cf:['processing.json'],
+    pat:[/^template_[A-Za-z0-9.]+\.nii\.gz$/],sfx:'-template',rex:null,extra:false,
+  },
+  'annotation-sets':{
+    rf:['data_description.json','manifest.json'],rd:['annotations.ome.zarr','annotations.precomputed'],
+    of:['parcellation_volumes.csv'],od:['annotations_compressed.ome.zarr','annotations_smooth.precomputed'],cf:[],
+    pat:[/^annotations_compressed_[A-Za-z0-9.]+\.nii\.gz$/],sfx:'-annotation',rex:null,extra:false,
+  },
+  'terminologies':{
+    rf:['data_description.json','manifest.json','terminology.csv'],rd:[],
+    of:['terminology.parquet'],od:['legacy_files'],cf:[],
+    pat:[],sfx:'-terminology',rex:null,extra:false,
+  },
+  'coordinate-spaces':{
+    rf:['data_description.json','manifest.json'],rd:[],of:[],od:[],cf:[],
+    pat:[],sfx:'-space',rex:null,extra:false,
+  },
+  'coordinate-transformations':{
+    rf:['data_description.json','manifest.json'],rd:[],of:[],od:['coordinate_transformations.ome.zarr'],cf:['processing.json'],
+    pat:[],sfx:null,rex:/.+_to_.+/,extra:true,
+  },
+};
+const VER_RE = /^(\d{4}(-\d{2})?|\d+\.\d+\.\d+|v\d+.*)$/;
+
+/* ── State ───────────────────────────────────────────── */
+const st = { data:null, sel:null, q:'', facet:null, selfHost:null, asset:null };
+
+/* ── S3 API ──────────────────────────────────────────── */
+function parseUri(raw) {
+  const s = raw.replace(/^s3:\/\//,'');
+  const i = s.indexOf('/');
+  return i<0 ? {bucket:s,prefix:''} : {bucket:s.slice(0,i),prefix:s.slice(i+1).replace(/\/$/,'')};
+}
+
+/* When this page is served from inside the bucket it describes, read the
+   bucket, region and prefix out of its own URL — so a copy dropped at any
+   prefix root describes that prefix, with no editing. Requests are then
+   same-origin, which sidesteps CORS entirely. */
+function detectSelfHosted(href) {
+  let u;
+  try { u = new URL(href); } catch { return null; }
+  if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
+
+  const host = u.hostname;
+  let path = decodeURIComponent(u.pathname).replace(/^\/+/, '');
+  let bucket = null, region = '';
+
+  // virtual-hosted, regional: <bucket>.s3.<region>.amazonaws.com
+  //                  legacy:  <bucket>.s3-<region>.amazonaws.com
+  let m = host.match(/^(.+)\.s3[.-]([a-z0-9-]+)\.amazonaws\.com$/);
+  if (m) { bucket = m[1]; region = m[2]; }
+
+  // virtual-hosted, global: <bucket>.s3.amazonaws.com
+  if (!bucket && (m = host.match(/^(.+)\.s3\.amazonaws\.com$/))) {
+    bucket = m[1]; region = '';
+  }
+
+  // path-style: s3.<region>.amazonaws.com/<bucket>/<key>
+  if (!bucket && (m = host.match(/^s3[.-]?([a-z0-9-]*?)\.?amazonaws\.com$/))) {
+    const slash = path.indexOf('/');
+    if (slash < 0) return null;
+    region = m[1] && m[1] !== 's3' ? m[1] : '';
+    bucket = path.slice(0, slash);
+    path   = path.slice(slash + 1);
+  }
+
+  if (!bucket) return null;
+
+  const slash = path.lastIndexOf('/');
+  return {
+    bucket,
+    region,
+    prefix: slash < 0 ? '' : path.slice(0, slash),
+    self:   slash < 0 ? path : path.slice(slash + 1),   // this file's own name
+  };
+}
+// With no region, use the global endpoint: S3 routes to the bucket's real
+// region itself and still answers with CORS headers. Naming a region is only
+// needed for opt-in regions the global endpoint won't serve.
+function s3base(bucket,region){
+  return region ? `https://${bucket}.s3.${region}.amazonaws.com`
+                : `https://${bucket}.s3.amazonaws.com`;
+}
+
+const S3_NS = 'http://s3.amazonaws.com/doc/2006-03-01/';
+
+// S3 serves these objects with no Cache-Control, so a browser falls back to
+// heuristic freshness — roughly 10% of an object's age — and will hand back a
+// stale body without even revalidating. A month-old file therefore reads as
+// current for days after it changes, and a script-initiated fetch like ours
+// ignores a hard reload, which only bypasses the cache for the page's own
+// load. Every store read goes to the network instead: "reload" refetches and
+// replaces the cache entry, so Load reloads rather than redrawing a stale copy.
+const FRESH = {cache: 'reload'};
+
+// List the immediate children of `prefix` (which must end with "/").
+// Follows continuation tokens: S3 caps a page at 1000 entries, and a
+// silently truncated page would read as "file missing" to the validator.
+async function listDelim(base, prefix, regionHint) {
+  const dirs = [], files = [];
+  let token = null;
+
+  do {
+    let url = `${base}/?list-type=2&prefix=${encodeURIComponent(prefix)}&delimiter=%2F`;
+    if (token) url += `&continuation-token=${encodeURIComponent(token)}`;
+
+    let r;
+    try {
+      r = await fetch(url, FRESH);
+    } catch {
+      // A cross-region endpoint answers 301, and the browser rejects the
+      // redirect at the CORS layer before any status reaches us.
+      throw new Error(regionHint
+        ? `Could not reach ${new URL(base).host}. If the bucket is not in "${regionHint}", clear the region field to let S3 route automatically.`
+        : `Could not reach ${new URL(base).host}. The bucket may not exist, may not allow anonymous access, or may be in an opt-in region — try naming its region.`);
+    }
+    if (!r.ok) {
+      const body = await r.text();
+      // Same mismatch, when the status does come through (proxy / same-origin).
+      if (r.status === 301 || r.status === 400) {
+        const real = body.match(/<Region>([^<]+)<\/Region>/)?.[1]
+                  || body.match(/s3[.-]([a-z0-9-]+)\.amazonaws\.com/)?.[1];
+        if (real) throw new Error(`Bucket is in region "${real}" — set that region, or clear the field for automatic routing.`);
+      }
+      if (r.status === 403) throw new Error('Access denied (403) — the bucket does not allow anonymous reads.');
+      if (r.status === 404) throw new Error('Bucket not found (404) — check the name.');
+      throw new Error(`S3 list ${r.status}: ${body.slice(0,120)}`);
+    }
+
+    const xml = new DOMParser().parseFromString(await r.text(), 'application/xml');
+
+    for (const el of xml.getElementsByTagNameNS(S3_NS,'CommonPrefixes')) {
+      const p = el.getElementsByTagNameNS(S3_NS,'Prefix')[0]?.textContent;
+      const name = p?.slice(prefix.length).replace(/\/$/,'');
+      if (name) dirs.push(name);
+    }
+    for (const el of xml.getElementsByTagNameNS(S3_NS,'Contents')) {
+      const k = el.getElementsByTagNameNS(S3_NS,'Key')[0]?.textContent;
+      const name = k?.slice(prefix.length);
+      if (name && !name.includes('/')) files.push(name);
+    }
+
+    token = xml.getElementsByTagNameNS(S3_NS,'IsTruncated')[0]?.textContent === 'true'
+      ? xml.getElementsByTagNameNS(S3_NS,'NextContinuationToken')[0]?.textContent
+      : null;
+  } while (token);
+
+  return {dirs, files};
+}
+
+async function fetchJSON(base, key) {
+  const r = await fetch(`${base}/${key}`, FRESH);
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
+
+/* ── Enumeration ─────────────────────────────────────── */
+async function enumerate(bucket, region, rootPrefix) {
+  const base = s3base(bucket, region);
+  const rootPfx = rootPrefix ? rootPrefix+'/' : '';
+
+  prog('Listing asset types…');
+  const {dirs:typeDirs, files:rootFiles} = await listDelim(base, rootPfx, region);
+
+  const rootWarnings = [];
+  // The viewer itself is expected furniture at a store root — whether this
+  // copy is the one being served from there or not.
+  const ownFile = st.selfHost && st.selfHost.prefix === rootPrefix ? st.selfHost.self : null;
+  const expectedAtRoot = new Set(['index.html', ownFile].filter(Boolean));
+  for (const f of rootFiles) {
+    if (expectedAtRoot.has(f)) continue;
+    rootWarnings.push(`Unexpected file at store root: ${f}`);
+  }
+  for (const d of typeDirs) {
+    if (!SPEC[d]) rootWarnings.push(`Unknown top-level directory: ${d}/`);
+  }
+
+  const tree = {};
+  let reqCount = 0;
+
+  // For each known type, recursively list assets → versions → contents
+  await Promise.all(typeDirs.filter(t=>SPEC[t]).map(async typeKey=>{
+    tree[typeKey] = {};
+    const {dirs:assetDirs} = await listDelim(base, `${rootPfx}${typeKey}/`);
+
+    await Promise.all(assetDirs.map(async assetName=>{
+      tree[typeKey][assetName] = {};
+      const {dirs:verDirs} = await listDelim(base, `${rootPfx}${typeKey}/${assetName}/`);
+
+      await Promise.all(verDirs.map(async version=>{
+        const {dirs,files} = await listDelim(base, `${rootPfx}${typeKey}/${assetName}/${version}/`);
+        tree[typeKey][assetName][version] = {files:files.sort(), dirs:dirs.sort()};
+        reqCount++;
+        prog(`Listing contents… (${reqCount} versions)`);
+      }));
+    }));
+  }));
+
+  // Collect every version that has a manifest, then fetch — total is known
+  // up front so the progress counter doesn't divide by a moving denominator.
+  const targets = [];
+  for (const [tk,assets] of Object.entries(tree))
+    for (const [an,vers] of Object.entries(assets))
+      for (const [v,vd] of Object.entries(vers)) {
+        const dir = `${rootPfx}${tk}/${an}/${v}`;
+        if (vd.files.includes('manifest.json'))
+          targets.push({key:`${dir}/manifest.json`, vd, field:'manifest'});
+        if (vd.files.includes('data_description.json'))
+          targets.push({key:`${dir}/data_description.json`, vd, field:'dd'});
+        // Needed to align the precomputed segmentation with its template:
+        // the OME chain carries a rotation precomputed cannot express.
+        if (tk === 'annotation-sets') {
+          const az = vd.dirs.includes('annotations_compressed.ome.zarr')
+            ? 'annotations_compressed.ome.zarr'
+            : (vd.dirs.includes('annotations.ome.zarr') ? 'annotations.ome.zarr' : null);
+          if (az) targets.push({key:`${dir}/${az}/zarr.json`, vd, field:'zarrMeta'});
+        }
+      }
+
+  const mfTotal = targets.length;
+  let mfDone = 0;
+  if (mfTotal) prog(`Fetching ${mfTotal} metadata files…`);
+  await Promise.all(targets.map(({key,vd,field}) =>
+    fetchJSON(base, key)
+      .then(j => { vd[field] = j; })
+      .catch(() => { vd[field] = null; })
+      .finally(() => { prog(`Fetching metadata… (${++mfDone}/${mfTotal})`); })
+  ));
+
+  return {tree, rootWarnings};
+}
+
+/* ── Validation ──────────────────────────────────────── */
+function validate(typeKey, assetName, version, files, dirs) {
+  const sp = SPEC[typeKey];
+  if (!sp) return {errors:[`Unknown type: ${typeKey}`],warnings:[]};
+  const fs = new Set(files), ds = new Set(dirs);
+  const errors=[], warnings=[];
+  for (const f of sp.rf) if (!fs.has(f)) errors.push(`Missing required file: ${f}`);
+  for (const d of sp.rd) if (!ds.has(d)) errors.push(`Missing required directory: ${d}/`);
+  for (const f of sp.cf) if (!fs.has(f)) warnings.push(`Missing conditional file (required if computed): ${f}`);
+  if (!VER_RE.test(version)) warnings.push(`Version '${version}' is not a recognized format`);
+  if (sp.sfx && !assetName.endsWith(sp.sfx)) warnings.push(`Name should end with '${sp.sfx}' (guideline)`);
+  if (sp.rex && !sp.rex.test(assetName))      warnings.push('Name should match <source>_to_<target> pattern (guideline)');
+  if (!sp.extra) {
+    const kf = new Set([...sp.rf,...sp.of,...sp.cf]);
+    for (const f of files) if (!kf.has(f) && !sp.pat.some(p=>p.test(f))) warnings.push(`Unexpected file: ${f}`);
+    const kd = new Set([...sp.rd,...sp.od]);
+    for (const d of dirs) if (!kd.has(d)) warnings.push(`Unexpected directory: ${d}/`);
+  }
+  return {errors,warnings};
+}
+
+function classify(typeKey, files, dirs) {
+  const sp = SPEC[typeKey];
+  if (!sp) return [];
+  const out = [];
+  const fs = new Set(files), ds = new Set(dirs);
+  const role = (name, isDir) => {
+    if (isDir) {
+      if (sp.rd.includes(name)) return 'required';
+      if (sp.od.includes(name)) return 'optional';
+      return 'extra';
+    }
+    if (sp.rf.includes(name)) return 'required';
+    if (sp.of.includes(name)||sp.cf.includes(name)) return 'optional';
+    if (sp.pat.some(p=>p.test(name))) return 'optional';
+    return 'extra';
+  };
+  for (const f of files) out.push({name:f,role:role(f,false),is_dir:false,absent:false});
+  for (const d of dirs)  out.push({name:d,role:role(d,true), is_dir:true, absent:false});
+  for (const f of sp.rf) if (!fs.has(f)) out.push({name:f,role:'required',is_dir:false,absent:true});
+  for (const d of sp.rd) if (!ds.has(d)) out.push({name:d,role:'required',is_dir:true, absent:true});
+  return out.sort((a,b)=>{
+    if (a.absent!==b.absent) return a.absent?1:-1;
+    const o={required:0,optional:1,extra:2};
+    return (o[a.role]||0)-(o[b.role]||0)||a.name.localeCompare(b.name);
+  });
+}
+
+/* ── Routing ─────────────────────────────────────────── */
+/* State lives in the hash so every view has its own shareable URL and the
+   page still works as a plain S3 object with no server rewrites:
+     #/overview
+     #/atlases
+     #/atlases/allen-adult-mouse-ccf-atlas
+     #/atlases/allen-adult-mouse-ccf-atlas/2017?filter=modality:SPIM&q=ccf
+   `store` is carried only when it differs from the one this page would
+   pick on its own, so ordinary links stay short. */
+const DEFAULT_STORE = 'aind-scratch-data/david.feng/allen-atlas-assets-rc13';
+let hashLock = false;
+
+function autoStore() {
+  const sh = st.selfHost;
+  return sh ? [sh.bucket, sh.prefix].filter(Boolean).join('/') : DEFAULT_STORE;
+}
+
+function encodeHash() {
+  const seg = [];
+  if (st.sel === '__overview__') seg.push('overview');
+  else if (st.sel) {
+    seg.push(st.sel);
+    if (st.asset) {
+      seg.push(st.asset.name);
+      if (st.asset.version) seg.push(st.asset.version);
+    }
+  }
+  const qs = new URLSearchParams();
+  if (st.q) qs.set('q', st.q);
+  if (st.facet) qs.set('filter', `${st.facet.key}:${st.facet.value}`);
+  const cur = st.data ? [st.data.bucket, st.data.prefix].filter(Boolean).join('/') : '';
+  if (cur && cur !== autoStore()) qs.set('store', cur);
+  const q = qs.toString();
+  return '#/' + seg.map(encodeURIComponent).join('/') + (q ? '?' + q : '');
+}
+
+function parseHash(hash) {
+  const raw = String(hash||'').replace(/^#\/?/, '');
+  const [pathPart, queryPart] = raw.split('?');
+  const seg = pathPart ? pathPart.split('/').filter(Boolean).map(decodeURIComponent) : [];
+  const qs  = new URLSearchParams(queryPart||'');
+  const filter = qs.get('filter') || '';
+  const ci = filter.indexOf(':');
+  return {
+    view:    seg[0] || null,
+    asset:   seg[1] || null,
+    version: seg[2] || null,
+    q:       qs.get('q') || '',
+    store:   qs.get('store') || '',
+    facet:   ci > 0 ? {key: filter.slice(0,ci), value: filter.slice(ci+1)} : null,
+  };
+}
+
+/* Write the current view to the URL without reloading. */
+function syncHash(replace) {
+  const next = encodeHash();
+  if (location.hash === next) return;
+  hashLock = true;
+  try { history[replace ? 'replaceState' : 'pushState'](null, '', next); }
+  catch { location.hash = next; }
+  setTimeout(()=>{ hashLock = false; }, 0);
+}
+
+/* Apply a route to the loaded store and render it. */
+function applyRoute(route) {
+  const data = st.data;
+  if (!data) return;
+
+  st.q = route.q || '';
+  st.facet = (route.facet && route.facet.key && route.facet.value)
+    ? {...route.facet, n: countFacet(data.tree, route.facet.key, route.facet.value)}
+    : null;
+
+  const isType = route.view && data.tree[route.view];
+  if (route.view === 'overview')      st.sel = '__overview__';
+  else if (isType)                    st.sel = route.view;
+  else st.sel = data.agg.withDD ? '__overview__'
+                : (TYPE_ORDER.find(t=>data.tree[t]) || Object.keys(data.tree)[0] || null);
+
+  // Only honour an asset that really exists in the routed type.
+  st.asset = null;
+  if (isType && route.asset && data.tree[route.view][route.asset]) {
+    const vers = data.tree[route.view][route.asset];
+    const version = route.version && vers[route.version]
+      ? route.version
+      : Object.keys(vers).sort((a,b)=>cmpVersion(b,a))[0];
+    st.asset = {name: route.asset, version};
+  }
+
+  renderStats(data.summary);
+  renderSb(data);
+  if (st.sel === '__overview__') renderOverview(data); else renderMain(data);
+  showExport();
+}
+
+function onHashChange() {
+  if (hashLock || !st.data) return;
+  const route = parseHash(location.hash);
+  const cur = [st.data.bucket, st.data.prefix].filter(Boolean).join('/');
+  // A link naming a different store needs a fresh load, not just a re-render.
+  if (route.store && route.store !== cur) {
+    document.getElementById('uri-in').value = route.store;
+    load(route);
+    return;
+  }
+  applyRoute(route);
+}
+
+/* ── Neuroglancer ────────────────────────────────────── */
+const NG_BASE = 'https://neuroglancer-demo.appspot.com/#!';
+const NEUROGLASS_BASE = 'https://allen.neuroglass.io/new#!';
+
+/* Absolute https URL for a path inside the store — Neuroglancer fetches
+   these cross-origin, so they cannot be relative. */
+function storeUrl(path) {
+  const d = st.data;
+  if (!d) return '';
+  const base = s3base(d.bucket, d.region);
+  const pfx  = d.prefix ? d.prefix + '/' : '';
+  return `${base}/${pfx}${String(path).replace(/^\/+/, '')}`;
+}
+
+/* Quilt browses the same objects; the catalog path mirrors bucket + key.
+   Both are derived from the loaded store, so they follow a different
+   bucket or prefix without editing. */
+const QUILT_CATALOG = 'https://open.quiltdata.com';
+
+const storeKey = path => {
+  const d = st.data;
+  const pfx = d?.prefix ? d.prefix + '/' : '';
+  return `${pfx}${String(path).replace(/^\/+/, '')}`;
+};
+const s3Uri    = path => st.data ? `s3://${st.data.bucket}/${storeKey(path)}` : '';
+const quiltUrl = path => st.data
+  ? `${QUILT_CATALOG}/b/${st.data.bucket}/tree/${storeKey(path).replace(/\/$/, '')}/`
+  : '';
+
+/* A store path rendered as its full s3:// URI, linking into Quilt. */
+function locationLink(path, cls) {
+  const uri = s3Uri(path);
+  if (!uri) return '';
+  // <wbr> after each separator so a long URI wraps at path boundaries
+  const shown = esc(uri).replace(/\//g, '/<wbr>');
+  return `<a class="loc${cls?' '+cls:''}" href="${esc(quiltUrl(path))}"
+    target="_blank" rel="noopener" title="Browse in Quilt">${shown}</a>`;
+}
+
+/* The OME-Zarr here is v3 (zarr.json, ome 0.6). Neuroglancer reads it,
+   including the coordinateSystems/transformSequence chain, so a zarr layer
+   lands in the asset's physical space on its own. Precomputed cannot carry
+   that rotation, which is what precomputedTransform() supplies. */
+/* 4 GiB. These volumes are large enough that Neuroglancer's ~1 GB defaults
+   cause constant re-fetching while panning. */
+const NG_MEMORY_LIMIT = 4 * 1024 * 1024 * 1024;
+
+/* Neuroglass takes the same viewer state, so both links are built from one
+   encoding rather than assembled twice. */
+const NG_VIEWERS = [
+  {name: 'Neuroglancer', base: NG_BASE},
+  {name: 'Neuroglass',   base: NEUROGLASS_BASE},
+];
+
+function ngState(layers) {
+  return encodeURIComponent(JSON.stringify({
+    layers,
+    layout: '4panel',
+    gpuMemoryLimit: NG_MEMORY_LIMIT,
+    systemMemoryLimit: NG_MEMORY_LIMIT,
+  }));
+}
+const ngLink = layers => NG_BASE + ngState(layers);
+const ngImage = (url, name) => ({type:'image',        source:`zarr3://${url}`, name});
+const ngSegZarr = (url, name) => ({type:'segmentation', source:`zarr3://${url}`, name});
+const ngSegPre  = (url, name) => ({type:'segmentation', source:`precomputed://${url}`, name});
+
+/* ── OME-Zarr coordinate transforms ──────────────────────────────────
+   OME-Zarr 0.6 carries a full affine from array indices to the asset's
+   physical space — in this store a signed axis permutation, sometimes with
+   a translation. The precomputed format can only express scale and
+   translation, so its segmentation and meshes would sit rotated away from
+   the template. Composing the OME chain here and handing it to
+   Neuroglancer as a layer transform puts both in the same space. */
+
+const m4Identity = () => [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]];
+
+function m4Mul(A, B) {
+  const C = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
+  for (let i=0;i<4;i++) for (let j=0;j<4;j++) {
+    let s = 0;
+    for (let k=0;k<4;k++) s += A[i][k]*B[k][j];
+    C[i][j] = s;
+  }
+  return C;
+}
+
+/* One OME transformation as a 4x4, acting on column vectors in the
+   coordinate system's own axis order. Returns null for anything not
+   understood, so an unknown step disables the transform rather than
+   silently producing a wrong one. */
+function omeStepToM4(s) {
+  if (!s || typeof s !== 'object') return null;
+  const M = m4Identity();
+  switch (s.type) {
+    case 'identity':
+      return M;
+    case 'scale': {
+      const v = s.scale;
+      if (!Array.isArray(v) || v.length !== 3) return null;
+      for (let i=0;i<3;i++) M[i][i] = v[i];
+      return M;
+    }
+    case 'translation': {
+      const v = s.translation;
+      if (!Array.isArray(v) || v.length !== 3) return null;
+      for (let i=0;i<3;i++) M[i][3] = v[i];
+      return M;
+    }
+    case 'rotation': {
+      const R = s.rotation;
+      if (!Array.isArray(R) || R.length !== 3) return null;
+      for (let i=0;i<3;i++) {
+        if (!Array.isArray(R[i]) || R[i].length !== 3) return null;
+        for (let j=0;j<3;j++) M[i][j] = R[i][j];
+      }
+      return M;
+    }
+    case 'affine': {
+      const A = s.affine;
+      if (!Array.isArray(A) || A.length !== 3) return null;
+      for (let i=0;i<3;i++) {
+        if (!Array.isArray(A[i]) || (A[i].length !== 3 && A[i].length !== 4)) return null;
+        for (let j=0;j<A[i].length;j++) M[i][j] = A[i][j];
+      }
+      return M;
+    }
+    case 'sequence': {
+      let acc = m4Identity();
+      for (const sub of (s.transformations || [])) {
+        const m = omeStepToM4(sub);
+        if (!m) return null;
+        acc = m4Mul(m, acc);       // later steps apply outward
+      }
+      return acc;
+    }
+    default:
+      return null;
+  }
+}
+
+const OME_UNITS = {
+  meter:[1,'m'], metre:[1,'m'], m:[1,'m'],
+  millimeter:[1e-3,'m'], millimetre:[1e-3,'m'], mm:[1e-3,'m'],
+  micrometer:[1e-6,'m'], micrometre:[1e-6,'m'], um:[1e-6,'m'],
+  nanometer:[1e-9,'m'], nanometre:[1e-9,'m'], nm:[1e-9,'m'],
+};
+
+/* Read the multiscales-level chain: the asset's intrinsic space (array
+   indices already scaled to physical units) to its output space. The
+   dataset-level step is deliberately excluded — it is always a plain
+   scale, and the precomputed source supplies its own resolution. */
+function omeIntrinsicToOutput(zarrJson) {
+  const ms = zarrJson?.attributes?.ome?.multiscales?.[0];
+  if (!ms) return null;
+  const systems = ms.coordinateSystems;
+  if (!Array.isArray(systems) || !systems.length) return null;
+
+  const inAxes  = systems[0].axes || [];
+  const outAxes = (systems[systems.length-1].axes) || inAxes;
+  if (inAxes.length !== 3 || outAxes.length !== 3) return null;
+
+  let M = m4Identity();
+  for (const t of (ms.coordinateTransformations || [])) {
+    const m = omeStepToM4(t);
+    if (!m) return null;
+    M = m4Mul(m, M);
+  }
+  const unit = OME_UNITS[String(outAxes[0].unit || 'millimeter').toLowerCase()];
+  if (!unit) return null;
+  return {
+    matrix: M,
+    inAxes:  inAxes.map(a=>a.name),
+    outAxes: outAxes.map(a=>a.name),
+    unit,
+  };
+}
+
+/* Build a Neuroglancer layer transform putting a precomputed volume into
+   the same physical space as its OME-Zarr sibling.
+
+   Neuroglancer converts a source's voxel coordinates into the output unit
+   using the source's OWN resolution before applying this matrix, so the
+   matrix must carry only the OME chain's rotation/translation and must NOT
+   re-apply the voxel size — doing so shrinks the volume by the resolution
+   squared and it vanishes. Verified against neuroglancer-demo: an identity
+   matrix with nanometre output dimensions reports the volume centre as
+   5700000 nm, i.e. already scaled.
+
+   Input arrives ordered x,y,z while OME lists axes z,y,x, so the matrix
+   columns are permuted to match. */
+function precomputedTransform(zarrJson) {
+  const ome = omeIntrinsicToOutput(zarrJson);
+  if (!ome) return null;
+
+  // Columns: OME input axis i sits at Neuroglancer column 'xyz'.indexOf(name)
+  const order = ome.inAxes.map(nm => 'xyz'.indexOf(nm));
+  if (order.some(i => i < 0)) return null;
+
+  const M = ome.matrix;
+  const rows = [];
+  for (let r=0;r<3;r++) {
+    const row = [0,0,0,0];
+    for (let c=0;c<3;c++) row[order[c]] = M[r][c];
+    row[3] = M[r][3];
+    rows.push(row);
+  }
+
+  // Rows follow the OME output axis order, so name the dimensions in the
+  // same order — this is also what the sibling OME-Zarr layer reports.
+  const matrix = [], outputDimensions = {};
+  ome.outAxes.forEach((nm, i) => {
+    outputDimensions[nm] = ome.unit;
+    matrix.push(rows[i]);
+  });
+
+  // A pure identity adds nothing; leave the source plain.
+  const isIdentity = matrix.every((row,i) =>
+    row.every((v,j) => Math.abs(v - (i===j ? 1 : 0)) < 1e-12));
+  return isIdentity ? null : {matrix, outputDimensions};
+}
+
+/* annotations.ome.zarr is a 4-D [c,z,y,x] per-structure mask stack, not a
+   label volume — annotations_compressed.ome.zarr is the 3-D int32 labels,
+   so that is what a segmentation layer must point at. */
+function annotationZarrDir(vd) {
+  if (vd.dirs?.includes('annotations_compressed.ome.zarr')) return 'annotations_compressed.ome.zarr';
+  if (vd.dirs?.includes('annotations.ome.zarr'))            return 'annotations.ome.zarr';
+  return null;
+}
+
+/* Resolve a manifest reference ("/templates/<name>/<version>") to a store path. */
+const refPath = ref => (ref && ref.location) ? String(ref.location).replace(/^\/+/, '') : null;
+
+/* Look up a referenced asset version in the tree, so a cross-asset link is
+   only offered when the file it points at actually exists. */
+function lookupVersion(path) {
+  const parts = String(path||'').replace(/^\/+/, '').split('/');
+  if (parts.length < 3) return null;
+  const [tk, name, version] = parts;
+  return st.data?.tree?.[tk]?.[name]?.[version] || null;
+}
+const refHas = (path, dir) => !!lookupVersion(path)?.dirs?.includes(dir);
+
+function ngLinksFor(tk, name, version, vd) {
+  const dir = `${tk}/${name}/${version}`;
+  const out = [];
+
+  if (tk === 'annotation-sets') {
+    if (vd.dirs?.includes('annotations.precomputed'))
+      out.push({label:'Precomputed', note:'meshes + segment properties',
+        layers: [ngSegPre(storeUrl(`${dir}/annotations.precomputed`), name)]});
+    const az = annotationZarrDir(vd);
+    if (az)
+      out.push({label:'OME-Zarr', note: az === 'annotations_compressed.ome.zarr'
+          ? 'compressed label volume' : 'per-structure mask stack',
+        layers: [ngSegZarr(storeUrl(`${dir}/${az}`), name)]});
+  }
+
+  if (tk === 'templates' && vd.dirs?.includes('template.ome.zarr'))
+    out.push({label:'OME-Zarr', note:'image volume',
+      layers: [ngImage(storeUrl(`${dir}/template.ome.zarr`), name)]});
+
+  // An atlas has no volumes of its own — it composes the template and
+  // annotation set its manifest names, as a single link.
+  if (tk === 'atlases') {
+    const m = vd.manifest || {};
+    const tpl = refPath((m.templates || [])[0]);
+    const ann = refPath((m.annotation_sets || [])[0]);
+    const tplName = (m.templates || [])[0]?.name || 'template';
+    const annName = (m.annotation_sets || [])[0]?.name || 'annotations';
+    const layers = [], note = [];
+
+    if (tpl && refHas(tpl, 'template.ome.zarr')) {
+      layers.push(ngImage(storeUrl(`${tpl}/template.ome.zarr`), tplName));
+      note.push('OME-Zarr template');
+    }
+
+    if (ann) {
+      const annVd = lookupVersion(ann);
+      // Precomputed carries meshes and segment properties, and its missing
+      // rotation can be restored from the annotation set's OME chain.
+      if (annVd?.dirs?.includes('annotations.precomputed')) {
+        const layer = ngSegPre(storeUrl(`${ann}/annotations.precomputed`), annName);
+        const xf = precomputedTransform(annVd.zarrMeta);
+        if (xf) {
+          layer.source = {url: layer.source, transform: xf};
+          note.push('precomputed annotations, aligned by the OME transform');
+        } else {
+          note.push('precomputed annotations');
+        }
+        layers.push(layer);
+      } else {
+        const az = annVd && annotationZarrDir(annVd);
+        if (az) {
+          layers.push(ngSegZarr(storeUrl(`${ann}/${az}`), annName));
+          note.push('OME-Zarr annotations');
+        }
+      }
+    }
+
+    if (layers.length)
+      out.push({label:'Combined', note: note.join(' + '), layers});
+  }
+
+  return out;
+}
+
+function renderNgLinks(tk, name, version, vd) {
+  const links = ngLinksFor(tk, name, version, vd);
+  if (!links.length) return '';
+  // A qualifier appears only where a type offers more than one variant.
+  const many = links.length > 1;
+  const anchors = links.flatMap(l => {
+    const frag = ngState(l.layers);
+    return NG_VIEWERS.map(v =>
+      `<a class="ng-link" href="${esc(v.base + frag)}" target="_blank" rel="noopener"
+         title="${esc(l.note)}"><span class="ng-ico">◈</span>Open in ${esc(v.name)}${
+           many ? `<span class="ng-fmt">${esc(l.label)}</span>` : ''}</a>`);
+  }).join('');
+  return `<div class="ng-row">${anchors}
+    <span class="ng-note">${esc(links.map(l=>
+      many ? `${l.label}: ${l.note}` : l.note).join(' · '))}</span>
+  </div>`;
+}
+
+/* ── data_description: facets & aggregation ──────────── */
+/* Fields that are null on every asset in practice (tags, group,
+   restrictions, source_data) are deliberately not surfaced. */
+const FACETS = [
+  {key:'modality',     label:'Modality'},
+  {key:'institution',  label:'Institution'},
+  {key:'project',      label:'Project'},
+  {key:'investigator', label:'Investigator'},
+  {key:'funder',       label:'Funder'},
+  {key:'year',         label:'Created'},
+];
+
+// Fields expected to hold one value across the whole store; a split is
+// a finding, not a decoration.
+const CONSTANTS = [
+  {key:'license',        label:'license'},
+  {key:'data_level',     label:'data_level'},
+  {key:'schema_version', label:'schema_version'},
+];
+
+function facetsOf(dd) {
+  if (!dd) return null;
+  const inst = dd.institution || {};
+  return {
+    // Raw value from data_description; modalityFor() decides what a given
+    // asset type is actually entitled to show.
+    modalityRaw:  (dd.modalities||[]).map(m=>m.abbreviation||m.name).filter(Boolean),
+    modality:     [],
+    institution:  [inst.abbreviation || inst.name].filter(Boolean),
+    project:      [dd.project_name].filter(Boolean),
+    investigator: (dd.investigators||[]).map(i=>i.name).filter(Boolean),
+    funder:       (dd.funding_source||[])
+                    .map(f=>(f.funder||{}).abbreviation || (f.funder||{}).name).filter(Boolean),
+    year:         [String(dd.creation_time||'').slice(0,4)].filter(v=>/^\d{4}$/.test(v)),
+  };
+}
+
+function matchesFacet(vd, facet) {
+  if (!facet) return true;
+  return (vd.facets?.[facet.key] || []).includes(facet.value);
+}
+
+/* Modality describes how a volume was imaged, so it belongs only to things
+   that are images:
+     templates   one modality, their own
+     atlases     the union of the templates they compose — one today, more
+                 as soon as an atlas gains a second template
+     everything else  none, even though its data_description inherits one
+   Annotation sets, terminologies, coordinate spaces and transformations
+   are parcellations, vocabularies and mathematics, not acquisitions. */
+function finalizeModality(tree) {
+  const at = (path) => {
+    const [tk, name, version] = String(path||'').replace(/^\/+/, '').split('/');
+    return tree?.[tk]?.[name]?.[version] || null;
+  };
+
+  for (const [tk, assets] of Object.entries(tree))
+    for (const vers of Object.values(assets))
+      for (const vd of Object.values(vers)) {
+        if (!vd.facets) continue;
+        const own = vd.facets.modalityRaw || [];
+
+        if (tk === 'templates') {
+          vd.facets.modality = own.slice(0, 1);
+        } else if (tk === 'atlases') {
+          const refs = (vd.manifest?.templates || [])
+            .map(t => at(t.location))
+            .filter(Boolean)
+            .flatMap(t => t.facets?.modalityRaw || []);
+          vd.facets.modality = [...new Set(refs.length ? refs : own)];
+        } else {
+          vd.facets.modality = [];
+        }
+      }
+}
+
+/* Roll every version's data_description into counts for the overview. */
+function aggregate(tree) {
+  const counts = Object.fromEntries(FACETS.map(f=>[f.key, new Map()]));
+  const consts = Object.fromEntries(CONSTANTS.map(c=>[c.key, new Map()]));
+  let withDD = 0, total = 0;
+  const times = [];
+
+  for (const assets of Object.values(tree))
+    for (const vers of Object.values(assets))
+      for (const vd of Object.values(vers)) {
+        total++;
+        const dd = vd.dd;
+        if (!dd) continue;
+        withDD++;
+        for (const f of FACETS)
+          for (const v of (vd.facets?.[f.key] || []))
+            counts[f.key].set(v, (counts[f.key].get(v)||0) + 1);
+        for (const c of CONSTANTS) {
+          const v = dd[c.key] == null ? '—' : String(dd[c.key]);
+          consts[c.key].set(v, (consts[c.key].get(v)||0) + 1);
+        }
+        if (dd.creation_time) times.push(String(dd.creation_time));
+      }
+
+  // Years ascend (a timeline); every other facet descends by count.
+  const sorted = {};
+  for (const f of FACETS) {
+    const rows = [...counts[f.key].entries()];
+    rows.sort(f.key === 'year'
+      ? (a,b)=>a[0].localeCompare(b[0])
+      : (a,b)=>b[1]-a[1] || a[0].localeCompare(b[0]));
+    sorted[f.key] = rows;
+  }
+  times.sort();
+  return {
+    facets: sorted,
+    consts: Object.fromEntries(CONSTANTS.map(c=>[c.key,[...consts[c.key].entries()].sort((a,b)=>b[1]-a[1])])),
+    withDD, total,
+    span: times.length ? [times[0].slice(0,10), times[times.length-1].slice(0,10)] : null,
+  };
+}
+
+/* ── Process ─────────────────────────────────────────── */
+function process(tree, rootWarnings) {
+  let te=0,tw=rootWarnings.length,ta=0,tv=0;
+  for (const [tk,assets] of Object.entries(tree)) {
+    ta += Object.keys(assets).length;
+    for (const [an,vers] of Object.entries(assets)) {
+      for (const [v,vd] of Object.entries(vers)) {
+        tv++;
+        const {errors,warnings} = validate(tk,an,v,vd.files,vd.dirs);
+        vd.val = {errors,warnings};
+        vd.details = classify(tk,vd.files,vd.dirs);
+        vd.facets = facetsOf(vd.dd);
+        te+=errors.length; tw+=warnings.length;
+      }
+    }
+  }
+  // Depends on cross-asset references, so it runs after every facet exists
+  // and before the overview counts them.
+  finalizeModality(tree);
+  return {summary:{ta,tv,te,tw},rootWarnings,tree,agg:aggregate(tree)};
+}
+
+/* ── Load pipeline ───────────────────────────────────── */
+async function load(route) {
+  const rawUri = document.getElementById('uri-in').value.trim();
+  const region = document.getElementById('rgn-sel').value;
+  if (!rawUri) return;
+
+  document.getElementById('load-btn').disabled = true;
+  document.getElementById('load-btn').textContent = 'Loading…';
+  document.getElementById('hdr-stats').innerHTML = '';
+  document.getElementById('export-btn').hidden = true;
+  document.getElementById('sb').innerHTML = '';
+  document.getElementById('main').innerHTML =
+    `<div class="state" id="init-state">
+       <div class="spinner"></div>
+       <h2>Fetching bucket…</h2>
+       <p class="prog-msg" id="prog-msg">Connecting…</p>
+     </div>`;
+  st.q=''; st.sel=null; st.data=null; st.facet=null; st.asset=null;
+  termCache.clear(); previewCache.clear();
+
+  try {
+    const {bucket,prefix} = parseUri(rawUri);
+    const {tree,rootWarnings} = await enumerate(bucket,region,prefix);
+    const data = {bucket,prefix,region,...process(tree,rootWarnings)};
+    st.data = data;
+    document.getElementById('init-state')?.remove();
+
+    if (!Object.keys(data.tree).length) {
+      renderStats(data.summary);
+      document.getElementById('main').innerHTML =
+        '<div class="state"><h2>Empty</h2><p>No asset-type directories found.</p></div>';
+    } else {
+      // Restore the requested view; with no route this lands on the overview.
+      applyRoute(route || parseHash(location.hash));
+      syncHash(true);
+    }
+
+  } catch(err) {
+    console.error(err);
+    document.getElementById('main').innerHTML = `
+      <div class="state">
+        <h2>Could not load bucket</h2>
+        <p>${esc(err.message)}</p>
+        <p style="margin-top:10px;font-size:12px">
+          Requests are unsigned and sent straight from the browser, so the bucket needs a CORS
+          policy allowing <code>GET</code> from any origin, and must permit anonymous reads.
+        </p>
+        <div class="drop-zone" id="dz" style="max-width:360px;margin:20px auto 0">
+          <p>Or drop an exported snapshot <code>.json</code> here</p>
+          <p style="margin-top:6px"><label>browse<input type="file" id="fjson" accept=".json" style="display:none"></label></p>
+        </div>
+      </div>`;
+    setupDrop();
+  } finally {
+    document.getElementById('load-btn').disabled = false;
+    document.getElementById('load-btn').textContent = 'Load';
+  }
+}
+
+/* ── File drop fallback ──────────────────────────────── */
+function setupDrop() {
+  const dz = document.getElementById('dz');
+  const fi = document.getElementById('fjson');
+  if (!dz||!fi) return;
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag')});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
+  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag');readFile(e.dataTransfer.files[0])});
+  fi.addEventListener('change',()=>readFile(fi.files[0]));
+}
+function readFile(f) {
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = e => {
+    let parsed;
+    try { parsed = JSON.parse(e.target.result); }
+    catch(err) { alert(`${f.name} is not valid JSON: ${err.message}`); return; }
+    try { applyData(parsed); }
+    catch(err) { alert(`Could not read ${f.name}: ${err.message}`); }
+  };
+  r.readAsText(f);
+}
+
+// An exported snapshot can be dropped anywhere on the page, not just onto
+// the error screen's drop target.
+window.addEventListener('dragover', e => { e.preventDefault(); });
+window.addEventListener('drop', e => {
+  const f = e.dataTransfer?.files?.[0];
+  if (!f || !/\.json$/i.test(f.name)) return;
+  e.preventDefault();
+  readFile(f);
+});
+/* Normalize a loaded snapshot to {type: {asset: {version: {files,dirs,manifest}}}}.
+   Accepts the shape Export writes, and tolerates an `asset_types` wrapper where
+   each asset nests its versions under an `assets`/`versions` key. */
+function normalizeTree(raw) {
+  const src = raw.asset_types
+    ? Object.fromEntries(Object.entries(raw.asset_types).map(([k,v]) => [k, v.assets || v]))
+    : raw.tree || raw;
+
+  const isVersion = o => o && typeof o === 'object'
+    && (Array.isArray(o.files) || Array.isArray(o.dirs));
+
+  const tree = {};
+  for (const [tk, assets] of Object.entries(src || {})) {
+    if (!assets || typeof assets !== 'object') continue;
+    tree[tk] = {};
+    for (const [an, node] of Object.entries(assets)) {
+      // Unwrap {versions:{…}} if present, else the node is already the version map.
+      const vers = (node && node.versions && !isVersion(node)) ? node.versions : node;
+      if (!vers || typeof vers !== 'object') continue;
+      tree[tk][an] = {};
+      for (const [v, vd] of Object.entries(vers)) {
+        if (!isVersion(vd)) continue;
+        tree[tk][an][v] = {
+          files: Array.isArray(vd.files) ? vd.files : [],
+          dirs:  Array.isArray(vd.dirs)  ? vd.dirs  : [],
+          manifest: vd.manifest ?? null,
+          dd:       vd.dd ?? null,
+        };
+      }
+    }
+  }
+  return tree;
+}
+
+function applyData(raw) {
+  const tree = normalizeTree(raw);
+  const count = Object.values(tree).reduce((n,a)=>n+Object.keys(a).length,0);
+  if (!count) throw new Error('No assets found in that file.');
+
+  const data = process(tree, raw.rootWarnings || []);
+  Object.assign(data, {bucket: raw.bucket||'local', prefix: raw.prefix||'', region: raw.region||''});
+  st.data=data; st.q=''; st.facet=null;
+  st.sel = data.agg.withDD
+    ? '__overview__'
+    : (TYPE_ORDER.find(t=>data.tree[t])||Object.keys(data.tree)[0]||null);
+  document.getElementById('main').innerHTML='';
+  renderStats(data.summary); renderSb(data);
+  if (st.sel === '__overview__') renderOverview(data);
+  else if (st.sel) renderMain(data);
+  showExport();
+}
+
+/* Export the current snapshot so it can be re-loaded later without S3. */
+function showExport() {
+  const btn = document.getElementById('export-btn');
+  if (!btn || !st.data) return;
+  btn.hidden = false;
+  btn.onclick = () => {
+    const {bucket,prefix,region,rootWarnings,tree} = st.data;
+    // Strip the derived fields — process() recomputes them on load.
+    const slim = {};
+    for (const [tk,assets] of Object.entries(tree)) {
+      slim[tk] = {};
+      for (const [an,vers] of Object.entries(assets)) {
+        slim[tk][an] = {};
+        for (const [v,vd] of Object.entries(vers)) {
+          slim[tk][an][v] = {files:vd.files, dirs:vd.dirs, manifest:vd.manifest ?? null, dd:vd.dd ?? null};
+        }
+      }
+    }
+    const blob = new Blob([JSON.stringify({bucket,prefix,region,rootWarnings,tree:slim},null,2)],
+      {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(prefix||bucket).replace(/[^\w.-]+/g,'_')}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+}
+
+/* ── Render: stats ───────────────────────────────────── */
+function renderStats({ta,tv,te,tw}) {
+  document.getElementById('hdr-stats').innerHTML = `
+    <span class="pill n">${ta} assets</span>
+    <span class="pill n">${tv} versions</span>
+    ${te ? `<span class="pill e">${te} errors</span>`   : ''}
+    ${tw ? `<span class="pill w">${tw} warnings</span>` : ''}
+    ${ta&&!te&&!tw ? '<span class="pill ok">✓ clean</span>' : ''}
+  `;
+}
+
+/* ── Terminology tree ────────────────────────────────── */
+/* RFC4180-ish: the descendant columns are quoted lists containing commas. */
+function parseCSV(text) {
+  const rows = [];
+  let row = [], field = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"') { if (text[i+1] === '"') { field += '"'; i++; } else q = false; }
+      else field += c;
+    } else if (c === '"') q = true;
+    else if (c === ',') { row.push(field); field = ''; }
+    else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+    else if (c !== '\r') field += c;
+  }
+  if (field || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+function buildTerminology(text) {
+  const rows = parseCSV(text);
+  if (!rows.length) return null;
+  const head = rows[0].map(h=>h.trim());
+  const ix = Object.fromEntries(head.map((h,i)=>[h,i]));
+  const need = ['identifier','parent_identifier','name'];
+  if (need.some(k=>ix[k] === undefined)) return null;
+
+  const byId = new Map();
+  for (let r = 1; r < rows.length; r++) {
+    const row = rows[r];
+    if (!row || row.length < head.length) continue;
+    const id = row[ix.identifier]?.trim();
+    if (!id) continue;
+    byId.set(id, {
+      id,
+      parent: row[ix.parent_identifier]?.trim() || '',
+      name:   row[ix.name] || '',
+      abbr:   ix.abbreviation     !== undefined ? row[ix.abbreviation]     : '',
+      color:  ix.color_hex_triplet!== undefined ? row[ix.color_hex_triplet]: '',
+      value:  ix.annotation_value !== undefined ? row[ix.annotation_value] : '',
+      kids: [],
+    });
+  }
+  const roots = [];
+  for (const n of byId.values()) {
+    const p = n.parent && byId.get(n.parent);
+    if (p && p !== n) p.kids.push(n); else roots.push(n);
+  }
+  const cmp = (a,b)=>(a.name||'').localeCompare(b.name||'');
+  roots.sort(cmp);
+  for (const n of byId.values()) n.kids.sort(cmp);
+  return {byId, roots, count: byId.size};
+}
+
+const termCache = new Map();   // storePath -> parsed terminology
+
+function nodeRow(n, depth, openSet, hits) {
+  const hasKids = n.kids.length > 0;
+  const open = openSet.has(n.id);
+  const hit  = hits && hits.has(n.id);
+  const swatch = /^#?[0-9a-f]{6}$/i.test(n.color||'')
+    ? `<span class="tswatch" style="background:${esc(n.color.startsWith('#')?n.color:'#'+n.color)}"></span>`
+    : `<span class="tswatch" style="background:transparent"></span>`;
+  return `<div class="tbranch" data-id="${esc(n.id)}">
+    <div class="tnode${hit?' hit':''}" title="${esc(n.id)} — ${esc(n.name)}">
+      <button type="button" class="ttw${hasKids?'':' leaf'}" data-tw="${esc(n.id)}"
+        aria-label="${open?'Collapse':'Expand'} ${esc(n.name)}">${hasKids?(open?'▼':'▶'):'•'}</button>
+      ${swatch}
+      ${n.abbr ? `<span class="tabbr">${esc(n.abbr)}</span>` : ''}
+      <span class="tname">${esc(n.name)}</span>
+      ${n.value !== '' ? `<span class="tval">${esc(n.value)}</span>` : ''}
+    </div>
+    ${hasKids && open ? `<div class="tkids">${n.kids.map(k=>nodeRow(k,depth+1,openSet,hits)).join('')}</div>` : ''}
+  </div>`;
+}
+
+/* Expand only what is open, so a 2,700-node terminology stays light. */
+function renderTree(host, term, state) {
+  const q = (state.q||'').trim().toLowerCase();
+  let hits = null;
+  if (q) {
+    hits = new Set();
+    for (const n of term.byId.values()) {
+      if ((n.name||'').toLowerCase().includes(q) || (n.abbr||'').toLowerCase().includes(q)
+          || String(n.value).toLowerCase() === q || n.id.toLowerCase().includes(q)) hits.add(n.id);
+    }
+    // Open every ancestor of a hit so matches are reachable.
+    for (const id of [...hits]) {
+      let cur = term.byId.get(id);
+      while (cur && cur.parent) {
+        const p = term.byId.get(cur.parent);
+        if (!p) break;
+        state.open.add(p.id); cur = p;
+      }
+    }
+  }
+  host.querySelector('.tree').innerHTML = term.roots.map(r=>nodeRow(r,0,state.open,hits)).join('');
+  host.querySelector('.tree-meta').textContent =
+    q ? `${hits.size} match${hits.size===1?'':'es'} of ${term.count}` : `${term.count} terms`;
+}
+
+function wireTree(host, term) {
+  const state = {open:new Set(term.roots.map(r=>r.id)), q:''};
+  host.querySelector('.tree').addEventListener('click', e=>{
+    const tw = e.target.closest('[data-tw]');
+    if (!tw) return;
+    const id = tw.dataset.tw;
+    state.open.has(id) ? state.open.delete(id) : state.open.add(id);
+    renderTree(host, term, state);
+  });
+  const srch = host.querySelector('.tree-srch');
+  let t;
+  srch.addEventListener('input', ()=>{
+    clearTimeout(t);
+    t = setTimeout(()=>{ state.q = srch.value; renderTree(host, term, state); }, 160);
+  });
+  host.querySelector('[data-tree-all]').addEventListener('click', ()=>{
+    const allOpen = state.open.size > term.roots.length;
+    state.open = allOpen ? new Set(term.roots.map(r=>r.id)) : new Set(term.byId.keys());
+    host.querySelector('[data-tree-all]').textContent = allOpen ? 'Expand all' : 'Collapse all';
+    renderTree(host, term, state);
+  });
+  renderTree(host, term, state);
+}
+
+async function openTerminology(host, path) {
+  const tree = host.querySelector('.tree');
+  tree.innerHTML = '<div style="padding:14px;color:var(--ink-3);font-size:12px">Loading terminology…</div>';
+  try {
+    let term = termCache.get(path);
+    if (!term) {
+      const r = await fetch(storeUrl(path), FRESH);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      term = buildTerminology(await r.text());
+      if (!term) throw new Error('unexpected CSV columns');
+      termCache.set(path, term);
+    }
+    wireTree(host, term);
+  } catch (err) {
+    tree.innerHTML = `<div style="padding:14px;color:var(--err);font-size:12px">
+      Could not load terminology.csv — ${esc(err.message)}</div>`;
+  }
+}
+
+/* ── Render: overview ────────────────────────────────── */
+/* One series of counts per panel, so a single validated hue; identity is
+   carried by the row label and every bar is directly labelled. */
+function barPanel(title, rows, facetKey, described) {
+  if (!rows.length) return '';
+  const max = Math.max(...rows.map(r=>r[1]));
+  const total = rows.reduce((n,r)=>n+r[1],0);
+  // Say so when a facet doesn't cover every described version (some assets
+  // carry no modality) or when values overlap (an asset can have 2 funders),
+  // so the bars aren't read as a clean partition of the store.
+  const cover = described == null || total === described ? ''
+    : total < described ? ` · ${described - total} without`
+    : ` · overlapping`;
+  const bars = rows.map(([label,n])=>{
+    const pct = Math.round(n/total*100);
+    const on  = st.facet && st.facet.key===facetKey && st.facet.value===label;
+    return `<button type="button" class="bar-row${on?' on':''}"
+        data-facet="${esc(facetKey)}" data-value="${esc(label)}"
+        aria-pressed="${!!on}"
+        title="${esc(label)} — ${n} of ${total} versions (${pct}%)">
+      <span class="bar-l">${esc(label)}</span>
+      <span class="bar-track"><span class="bar-fill" style="width:${(n/max*100).toFixed(1)}%"></span></span>
+      <span class="bar-v">${n}</span>
+    </button>`;
+  }).join('');
+  return `<section class="panel">
+    <div class="panel-h"><h3 class="panel-t">${esc(title)}</h3>
+      <span class="panel-n">${rows.length} value${rows.length===1?'':'s'}${cover}</span></div>
+    <div class="bars">${bars}</div>
+  </section>`;
+}
+
+function renderOverview(data) {
+  const el = document.getElementById('main');
+  const {agg, summary} = data;
+  const missing = agg.total - agg.withDD;
+
+  const tiles = `<div class="tiles">
+    <div class="tile"><div class="tile-k">Assets</div><div class="tile-v">${summary.ta}</div>
+      <div class="tile-sub">${summary.tv} versions</div></div>
+    <div class="tile"><div class="tile-k">Described</div><div class="tile-v">${agg.withDD}</div>
+      <div class="tile-sub">${missing ? `${missing} without data_description` : 'every version'}</div></div>
+    <div class="tile"><div class="tile-k">Created</div>
+      <div class="tile-v" style="font-size:15px;padding-top:5px">${agg.span?esc(agg.span[0]):'—'}</div>
+      <div class="tile-sub">through ${agg.span?esc(agg.span[1]):'—'}</div></div>
+    <div class="tile"><div class="tile-k">Investigators</div>
+      <div class="tile-v">${agg.facets.investigator.length}</div>
+      <div class="tile-sub">${agg.facets.project.length} projects</div></div>
+  </div>`;
+
+  const consts = `<section class="panel">
+    <div class="panel-h"><h3 class="panel-t">Constant across the store</h3>
+      <span class="panel-n">${agg.withDD} versions</span></div>
+    <div class="consts">${CONSTANTS.map(c=>{
+      const rows = agg.consts[c.key] || [];
+      if (!rows.length) return '';
+      const single = rows.length === 1;
+      const val = single ? rows[0][0] : rows.map(([v,n])=>`${v} (${n})`).join(' · ');
+      return `<div class="crow">
+        <span class="ck">${esc(c.label)}</span>
+        <span class="cv">${esc(val)}</span>
+        <span class="cbadge${single?'':' split'}">${single?'uniform':`${rows.length} values`}</span>
+      </div>`;
+    }).join('')}</div>
+    <p style="font-size:11px;color:var(--ink-3);margin-top:10px;line-height:1.5">
+      A split value is worth a look — these are expected to agree across every asset.
+    </p>
+  </section>`;
+
+  el.innerHTML = `
+    <div class="main-hdr"><h2 class="main-title">Overview</h2></div>
+    ${st.facet ? facetBar() : ''}
+    ${rootBanner(data)}
+    <div class="ov">
+      ${tiles}
+      <div class="panels">
+        ${barPanel('Modality',     agg.facets.modality,     'modality', agg.withDD)}
+        ${barPanel('Institution',  agg.facets.institution,  'institution', agg.withDD)}
+        ${barPanel('Funder',       agg.facets.funder,       'funder', agg.withDD)}
+        ${barPanel('Investigator', agg.facets.investigator, 'investigator', agg.withDD)}
+        ${barPanel('Project',      agg.facets.project,      'project', agg.withDD)}
+        ${barPanel('Creation year',agg.facets.year,         'year', agg.withDD)}
+        ${consts}
+      </div>
+    </div>`;
+
+}
+
+/* Store-level warnings belong on every view, including the landing page. */
+function rootBanner(data) {
+  if (!data.rootWarnings?.length) return '';
+  return `<div class="rbanner"><span>⚠</span><div><strong>Store warnings</strong>
+    <ul>${data.rootWarnings.map(w=>`<li>${esc(w)}</li>`).join('')}</ul></div></div>`;
+}
+
+function facetBar() {
+  const f = st.facet;
+  const label = FACETS.find(x=>x.key===f.key)?.label || f.key;
+  return `<div class="fbar">
+    <span class="fbar-t">Filtered to <b>${esc(label)}: ${esc(f.value)}</b> — ${f.n} version${f.n===1?'':'s'}</span>
+    <button type="button" class="fclear">Clear</button>
+  </div>`;
+}
+
+/* Clicking any bar or provenance chip sets the store-wide filter. Delegated
+   from #main once, so chips inside cards keep working after a rebuild. */
+function installFacetDelegate() {
+  document.getElementById('main').addEventListener('click', e => {
+    const data = st.data;
+    if (!data) return;
+
+    // A text file in the Contents browser opens a preview.
+    const pv = e.target.closest('[data-preview]');
+    if (pv) {
+      e.stopPropagation();
+      openPreview(pv.dataset.preview, pv.dataset.fname);
+      return;
+    }
+
+    // Terminology browser: load on first ask, then just toggle.
+    const openBtn = e.target.closest('[data-term-open]');
+    if (openBtn) {
+      e.stopPropagation();
+      const host = openBtn.closest('.term-panel');
+      const tree = host.querySelector('.tree');
+      const shown = !tree.hidden;
+      tree.hidden = shown;
+      host.querySelector('.tree-srch').hidden = shown;
+      host.querySelector('[data-tree-all]').hidden = shown;
+      openBtn.textContent = shown ? 'Browse hierarchy' : 'Hide hierarchy';
+      if (!shown && !host.dataset.loaded) {
+        host.dataset.loaded = '1';
+        openTerminology(host, host.dataset.term);
+      }
+      return;
+    }
+    // Clicks inside the tree are handled by the tree's own listener.
+    if (e.target.closest('.term-panel')) return;
+
+    if (e.target.closest('.fclear')) {
+      st.facet = null;
+      syncHash();
+      renderSb(data);
+      st.sel === '__overview__' ? renderOverview(data) : renderMain(data);
+      return;
+    }
+    const b = e.target.closest('[data-facet]');
+    if (!b) return;
+    e.stopPropagation();
+    const key = b.dataset.facet, value = b.dataset.value;
+    st.facet = (st.facet && st.facet.key===key && st.facet.value===value)
+      ? null
+      : {key, value, n: countFacet(data.tree, key, value)};
+    syncHash();
+    renderSb(data);
+    st.sel === '__overview__' ? renderOverview(data) : renderMain(data);
+  });
+}
+
+function countFacet(tree, key, value) {
+  let n = 0;
+  for (const assets of Object.values(tree))
+    for (const vers of Object.values(assets))
+      for (const vd of Object.values(vers))
+        if ((vd.facets?.[key]||[]).includes(value)) n++;
+  return n;
+}
+
+/* ── Render: sidebar ─────────────────────────────────── */
+function renderSb(data) {
+  const sb = document.getElementById('sb');
+  sb.innerHTML = '';
+
+  const ov = document.createElement('button');
+  ov.className = 'type-btn'+(st.sel==='__overview__'?' on':'');
+  ov.innerHTML = '<span class="type-icon">◧</span><span class="type-name">Overview</span>';
+  ov.addEventListener('click',()=>{st.sel='__overview__';st.asset=null;syncHash();renderSb(data);renderOverview(data);});
+  sb.appendChild(ov);
+
+  sb.insertAdjacentHTML('beforeend','<div class="sb-label">Asset Types</div>');
+  for (const tk of TYPE_ORDER) {
+    if (!data.tree[tk]) continue;
+    const m = TYPE_META[tk]||{label:tk,icon:'▪'};
+    const assets = data.tree[tk];
+    // Under a filter, count only assets that still have a matching version.
+    const n = Object.values(assets)
+      .filter(vers=>Object.values(vers).some(vd=>matchesFacet(vd, st.facet))).length;
+    let hasErr = false;
+    for (const vers of Object.values(assets))
+      for (const vd of Object.values(vers))
+        if (vd.val?.errors?.length && matchesFacet(vd, st.facet)) hasErr=true;
+    const btn = document.createElement('button');
+    btn.className = 'type-btn'+(st.sel===tk?' on':'')+(n?'':' dim');
+    btn.dataset.t = tk;
+    btn.innerHTML = `<span class="type-icon">${m.icon}</span><span class="type-name">${m.label}</span>${hasErr?'<span class="err-dot"></span>':''}<span class="type-ct">${n}</span>`;
+    btn.addEventListener('click',()=>{st.sel=tk;st.asset=null;st.q='';syncHash();renderSb(data);renderMain(data);});
+    sb.appendChild(btn);
+  }
+}
+
+/* ── Render: main ────────────────────────────────────── */
+function renderMain(data) {
+  if (st.asset) return renderAssetPage(data);
+  return renderList(data);
+}
+
+/* ── The searchable index: one non-expandable row per asset ──────────
+   A row is a link to the asset's own page; the version chips link to a
+   specific version. Everything shown comes from the newest version. */
+function renderList(data) {
+  const el  = document.getElementById('main');
+  const tk  = st.sel;
+  const m   = TYPE_META[tk]||{label:tk};
+  const all = data.tree[tk]||{};
+  const q   = st.q.toLowerCase();
+
+  const names = Object.keys(all)
+    .filter(n=>!q || n.toLowerCase().includes(q) || rowMatchesText(all[n], q))
+    .filter(n=>Object.values(all[n]).some(vd=>matchesFacet(vd, st.facet)))
+    .sort();
+
+  el.innerHTML = '';
+  if (st.facet) el.insertAdjacentHTML('beforeend', facetBar());
+  el.insertAdjacentHTML('beforeend', rootBanner(data));
+
+  const hdr = document.createElement('div');
+  hdr.className='main-hdr';
+  hdr.innerHTML=`<h2 class="main-title">${esc(m.label)}</h2>
+    <div class="srch">
+      <span class="srch-ico">⌕</span>
+      <input class="srch-in" id="srch" placeholder="Search name, modality, project…" value="${esc(st.q)}">
+    </div>
+    <span class="list-count">${names.length} of ${Object.keys(all).length}</span>`;
+  el.appendChild(hdr);
+  document.getElementById('srch').addEventListener('input',e=>{
+    st.q=e.target.value; syncHash(true); renderList(data);});
+
+  if (!names.length) {
+    el.insertAdjacentHTML('beforeend',
+      `<div class="state"><h2>No assets</h2><p>${q?'Nothing matches that search.':'Nothing here.'}</p></div>`);
+    return;
+  }
+
+  const cols = listColumns(tk, names.map(n=>rowData(tk,n,all[n])));
+  const rows = names.map(n=>rowData(tk,n,all[n]));
+
+  el.insertAdjacentHTML('beforeend', `
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr>${cols.map(c=>`<th class="${c.cls||''}">${esc(c.label)}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map(r=>`<tr class="row" data-href="${esc(r.href)}">${
+        cols.map(c=>`<td class="${c.cls||''}">${c.cell(r)}</td>`).join('')
+      }</tr>`).join('')}</tbody>
+    </table></div>`);
+
+  // The whole row is clickable; real links inside it (name, version chips)
+  // keep their own targets.
+  el.querySelector('.tbl tbody')?.addEventListener('click', e=>{
+    if (e.target.closest('a')) return;
+    const tr = e.target.closest('tr[data-href]');
+    if (tr) location.hash = tr.dataset.href;
+  });
+}
+
+/* One row's worth of facts, gathered from the newest version. */
+function rowData(tk, name, versions) {
+  const {version, vd, keys} = newestVersion(versions);
+  const dd = vd.dd || {};
+  return {
+    tk, name, version, vd, versions, keys,
+    href: assetHref(tk, name, version),
+    modality: (vd.facets?.modality || []),
+    institution: (dd.institution||{}).abbreviation || (dd.institution||{}).name || '',
+    created: String(dd.creation_time||'').slice(0,10),
+    scales: (vd.manifest?.scales || []).join(', '),
+    project: dd.project_name || '',
+  };
+}
+
+/* Column set for a type. Modality describes how a volume was imaged, which
+   is a property of the template — the other types inherit one in their
+   metadata, but showing it there is noise. Beyond that, a column that is
+   empty for every row of this type is dropped rather than left blank. */
+const LIST_COLS = [
+  {key:'status',      label:'',            cls:'c-st',   always:true,
+   cell:r=>statusCell(r.vd)},
+  {key:'name',        label:'Asset',       cls:'c-name', always:true,
+   cell:r=>`<a class="row-link" href="${esc(r.href)}">${esc(r.name)}</a>`},
+  {key:'modality',    label:'Modality',    cls:'c-mod',  only:['atlases','templates'],
+   value:r=>r.modality.join(' '),
+   cell:r=>r.modality.map(x=>`<span class="tag">${esc(x)}</span>`).join(' ')},
+  {key:'project',     label:'Project',     cls:'c-dim',
+   value:r=>r.project, cell:r=>esc(r.project)},
+  {key:'institution', label:'Institution', cls:'c-dim',
+   value:r=>r.institution, cell:r=>esc(r.institution)},
+  {key:'created',     label:'Created',     cls:'c-dim c-num',
+   value:r=>r.created, cell:r=>esc(r.created)},
+  {key:'scales',      label:'Scales',      cls:'c-dim c-num',
+   value:r=>r.scales, cell:r=>esc(r.scales)},
+  {key:'versions',    label:'Versions',    cls:'c-vers', always:true,
+   cell:r=>r.keys.map(v=>{
+     const vv = r.versions[v].val || {};
+     const cls = vv.errors?.length ? 've' : vv.warnings?.length ? 'vw' : '';
+     return `<a class="vpill ${cls}" href="${esc(assetHref(r.tk,r.name,v))}"
+       title="Open ${esc(r.name)} ${esc(v)}">${esc(v)}</a>`;
+   }).join('')},
+];
+
+function listColumns(tk, rows) {
+  return LIST_COLS.filter(c => {
+    if (c.only && !c.only.includes(tk)) return false;
+    if (c.always || !c.value) return true;
+    return rows.some(r => String(c.value(r) ?? '').trim() !== '');
+  });
+}
+
+/* Search also looks at the metadata shown in the row, not just the name. */
+function rowMatchesText(versions, q) {
+  const vd = newestVersion(versions).vd;
+  const f = vd.facets || {};
+  const hay = [...(f.modality||[]), ...(f.institution||[]), ...(f.project||[]),
+               ...(f.investigator||[]), ...(f.year||[])].join(' ').toLowerCase();
+  return hay.includes(q);
+}
+
+function newestVersion(versions) {
+  const keys = Object.keys(versions).sort((a,b)=>cmpVersion(b,a));
+  return {version: keys[0], vd: versions[keys[0]], keys};
+}
+
+function statusCell(vd) {
+  const v = vd.val || {errors:[],warnings:[]};
+  if (v.errors.length)   return `<span class="st-e" title="${v.errors.length} errors">✗</span>`;
+  if (v.warnings.length) return `<span class="st-w" title="${v.warnings.length} warnings">⚠</span>`;
+  return '<span class="st-ok" title="No findings">✓</span>';
+}
+
+const assetHref = (tk,name,version) =>
+  '#/' + [tk,name,version].map(encodeURIComponent).join('/');
+
+/* ── One asset, one page ─────────────────────────────────────────── */
+function renderAssetPage(data) {
+  const el = document.getElementById('main');
+  const tk = st.sel;
+  const {name, version} = st.asset;
+  const versions = data.tree[tk]?.[name];
+  if (!versions) { st.asset = null; return renderList(data); }
+  const vd = versions[version];
+  const keys = Object.keys(versions).sort((a,b)=>cmpVersion(b,a));
+  const m = TYPE_META[tk]||{label:tk};
+  const val = vd.val || {errors:[],warnings:[]};
+
+  const status = val.errors.length
+      ? `<span class="pill e">${val.errors.length} error${val.errors.length===1?'':'s'}</span>`
+    : val.warnings.length
+      ? `<span class="pill w">${val.warnings.length} warning${val.warnings.length===1?'':'s'}</span>`
+      : '<span class="pill ok">✓ valid</span>';
+
+  el.innerHTML = `
+    <nav class="crumbs">
+      <a href="#/${esc(tk)}">${esc(m.label)}</a><span class="crumb-sep">/</span>
+      <span class="crumb-cur">${esc(name)}</span>
+    </nav>
+    <div class="asset-hd">
+      <h2 class="asset-title">${esc(name)}</h2>
+      ${status}
+      <div class="vpills">${keys.map(v=>`<a class="vpill ${
+        versions[v].val?.errors?.length?'ve':versions[v].val?.warnings?.length?'vw':''
+      } ${v===version?'sel':''}" href="${esc(assetHref(tk,name,v))}">${esc(v)}</a>`).join('')}</div>
+    </div>
+    <div class="asset-path">${locationLink(`${tk}/${name}/${version}`)}</div>
+    ${body(tk, name, version, vd)}`;
+  document.getElementById('main').scrollTop = 0;
+}
+
+/* Compare version strings segment-wise so 2026-03 > 2024-05 and
+   10.0.0 > 9.0.0 (a plain lexicographic sort gets both backwards). */
+function cmpVersion(a, b) {
+  const seg = s => s.split(/[.\-_]/).map(p => /^\d+$/.test(p) ? +p : p);
+  const A = seg(a), B = seg(b);
+  for (let i = 0; i < Math.max(A.length, B.length); i++) {
+    const x = A[i], y = B[i];
+    if (x === undefined) return -1;
+    if (y === undefined) return 1;
+    if (x === y) continue;
+    return (typeof x === 'number' && typeof y === 'number')
+      ? x - y
+      : String(x).localeCompare(String(y));
+  }
+  return 0;
+}
+
+function body(tk, name, version, vd) {
+  const val     = vd.val||{errors:[],warnings:[]};
+  const details = vd.details||[];
+  const mf      = vd.manifest;
+
+  // Contents reads as a small file browser: the version directory at the
+  // top, its entries beneath. Text files are buttons that open a preview.
+  const dir = `${tk}/${name}/${version}`;
+  const entries = [...details].sort((a,b)=>
+    (a.absent?1:0)-(b.absent?1:0) ||        // missing required entries last
+    (b.is_dir?1:0)-(a.is_dir?1:0) ||        // directories before files
+    a.name.localeCompare(b.name));
+
+  const frows = entries.map(f=>{
+    // left icon says what the entry is; the status glyph says whether it
+    // is actually there, so the two readings stay separate
+    const ico = `<span class="fico${f.absent?' abs':''}">${f.is_dir?'📁':'📄'}</span>`;
+    const stat = f.absent
+      ? '<span class="fstat e" title="Missing">✗</span>'
+      : '<span class="fstat ok" title="Present">✓</span>';
+    const role = f.absent
+      ? '<span class="frole rm">required</span>'
+      : f.role==='extra'
+        ? '<span class="frole" style="color:var(--warn)">extra</span>'
+        : `<span class="frole">${esc(f.role)}</span>`;
+    const label = esc(f.name + (f.is_dir ? '/' : ''));
+    const nameEl = isPreviewable(f)
+      ? `<button type="button" class="fname" data-preview="${esc(dir+'/'+f.name)}"
+           data-fname="${esc(f.name)}" title="Preview ${esc(f.name)}">${label}</button>`
+      : `<span class="fname${f.absent?' abs':''}">${label}</span>`;
+    return `<div class="frow">${ico}${nameEl}${stat}${role}</div>`;
+  }).join('');
+
+  const browser = `<div class="fb">
+      <div class="fb-root"><span class="fb-ico">📂</span>
+        <span class="fb-path">${esc(dir)}/</span></div>
+      <div class="flist">${frows}</div>
+    </div>`;
+
+  const findings = [
+    ...val.errors.map(e=>`<div class="finding e"><span>✗</span>${esc(e)}</div>`),
+    ...val.warnings.map(w=>`<div class="finding w"><span>⚠</span>${esc(w)}</div>`),
+  ].join('');
+
+  const dd = vd.dd;
+  return `
+    ${dd?.data_summary ? `<p class="lede">${esc(dd.data_summary)}</p>` : ''}
+    ${dd ? renderChips(vd) : ''}
+    ${renderNgLinks(tk, name, version, vd)}
+    ${renderTerminologyPanel(tk, name, version, vd)}
+    <div class="cols">
+      <div>
+        <div class="sec-lbl">Contents</div>
+        ${browser}
+        ${findings?`<div class="findings">${findings}</div>`:''}
+      </div>
+      <div>
+        <div class="sec-lbl">Manifest</div>
+        ${mf ? renderMf(mf) : '<span style="font-size:12px;color:var(--ink-3)">Not available</span>'}
+      </div>
+      <div>
+        <div class="sec-lbl">Provenance</div>
+        ${dd ? renderProv(dd) : '<span style="font-size:12px;color:var(--ink-3)">No data_description.json</span>'}
+      </div>
+    </div>`;
+}
+
+/* ── File preview ────────────────────────────────────────────────────
+   Text files in the Contents browser open in a dialog: JSON pretty-printed
+   and lightly coloured, CSV as a table. Binary volumes are not previewable
+   and stay plain text in the listing. */
+const PREVIEWABLE = new Set(['json','csv','tsv','txt','md','log','yaml','yml']);
+const extOf = n => String(n).toLowerCase().split('.').pop();
+const isPreviewable = f => !f.is_dir && !f.absent && PREVIEWABLE.has(extOf(f.name));
+
+const previewCache = new Map();
+const fmtBytes = n => n < 1024 ? `${n} B`
+  : n < 1048576 ? `${(n/1024).toFixed(1)} KB` : `${(n/1048576).toFixed(1)} MB`;
+
+/* Colour JSON after escaping, so the markup can never come from the file. */
+function highlightJSON(text) {
+  return esc(text).replace(
+    /(&quot;(?:\\.|[^\\&]|&(?!quot;))*&quot;)(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/g,
+    (m, str, colon, lit) => {
+      if (str) return `<span class="${colon ? 'k' : 's'}">${str}</span>${colon || ''}`;
+      if (lit) return `<span class="b">${m}</span>`;
+      return `<span class="n">${m}</span>`;
+    });
+}
+
+const MAX_CSV_ROWS = 500;
+
+function renderPreviewBody(name, text) {
+  const ext = extOf(name);
+  if (ext === 'json') {
+    try {
+      return `<pre class="pv-pre">${highlightJSON(JSON.stringify(JSON.parse(text), null, 2))}</pre>`;
+    } catch {
+      return `<pre class="pv-pre">${esc(text)}</pre>`;   // show it as-is if invalid
+    }
+  }
+  if (ext === 'csv' || ext === 'tsv') {
+    const rows = parseCSV(text).filter(r => r.length && !(r.length === 1 && r[0] === ''));
+    if (!rows.length) return '<div class="pv-note">Empty file.</div>';
+    const [head, ...body] = rows;
+    const shown = body.slice(0, MAX_CSV_ROWS);
+    const cell = v => `<td title="${esc(v)}">${esc(v)}</td>`;
+    return `<table class="pv-tbl">
+        <thead><tr>${head.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead>
+        <tbody>${shown.map(r=>`<tr>${r.map(cell).join('')}</tr>`).join('')}</tbody>
+      </table>
+      <div class="pv-note">${body.length.toLocaleString()} rows${
+        body.length > shown.length ? ` — showing the first ${MAX_CSV_ROWS.toLocaleString()}` : ''
+      } · ${head.length} columns</div>`;
+  }
+  return `<pre class="pv-pre">${esc(text)}</pre>`;
+}
+
+function previewDialog() {
+  let d = document.getElementById('pv-dlg');
+  if (d) return d;
+  d = document.createElement('dialog');
+  d.id = 'pv-dlg'; d.className = 'pv-dlg';
+  d.innerHTML = `<div class="pv-hd">
+      <span class="fb-ico">📄</span>
+      <span class="pv-name"></span><span class="pv-meta"></span>
+      <span class="pv-actions">
+        <a class="pv-raw" target="_blank" rel="noopener">Raw</a>
+        <button type="button" class="pv-close" aria-label="Close">×</button>
+      </span>
+    </div><div class="pv-body"></div>`;
+  document.body.appendChild(d);
+  d.querySelector('.pv-close').addEventListener('click', ()=>d.close());
+  // Click on the backdrop (outside the panel) closes it.
+  d.addEventListener('click', e => { if (e.target === d) d.close(); });
+  return d;
+}
+
+async function openPreview(path, name) {
+  const d = previewDialog();
+  d.querySelector('.pv-name').textContent = name;
+  d.querySelector('.pv-meta').textContent = '';
+  d.querySelector('.pv-raw').href = storeUrl(path);
+  const body = d.querySelector('.pv-body');
+  body.innerHTML = '<div class="pv-note">Loading…</div>';
+  if (!d.open) d.showModal();
+
+  try {
+    let entry = previewCache.get(path);
+    if (!entry) {
+      const r = await fetch(storeUrl(path), FRESH);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const text = await r.text();
+      entry = {text, bytes: new Blob([text]).size};
+      previewCache.set(path, entry);
+    }
+    // A slow file may have been closed, or another opened, meanwhile.
+    if (!d.open || d.querySelector('.pv-name').textContent !== name) return;
+    d.querySelector('.pv-meta').textContent = fmtBytes(entry.bytes);
+    body.innerHTML = renderPreviewBody(name, entry.text);
+    body.scrollTop = 0;
+  } catch (err) {
+    body.innerHTML = `<div class="pv-note" style="color:var(--err)">Could not load ${esc(name)} — ${esc(err.message)}</div>`;
+  }
+}
+
+/* Terminology assets get a lazily-loaded hierarchy browser: the CSV is
+   up to ~1 MB, so it is fetched only when asked for, then cached. */
+function renderTerminologyPanel(tk, name, version, vd) {
+  if (tk !== 'terminologies' || !vd.files?.includes('terminology.csv')) return '';
+  const path = `${tk}/${name}/${version}/terminology.csv`;
+  return `<div class="term-panel" data-term="${esc(path)}">
+    <div class="tree-bar">
+      <button type="button" class="tree-btn" data-term-open>Browse hierarchy</button>
+      <input class="tree-srch" placeholder="Find a structure…" hidden>
+      <button type="button" class="tree-btn" data-tree-all hidden>Expand all</button>
+      <span class="tree-meta"></span>
+    </div>
+    <div class="tree" hidden></div>
+  </div>`;
+}
+
+/* Facet chips: clicking one filters the whole store by that value. */
+function renderChips(vd) {
+  const f = vd.facets || {};
+  const out = [];
+  for (const key of ['modality','institution','year']) {
+    for (const value of (f[key]||[])) {
+      const on = st.facet && st.facet.key===key && st.facet.value===value;
+      const kLabel = key==='year' ? 'created' : key;
+      out.push(`<button type="button" class="chip${on?' on':''}"
+        data-facet="${esc(key)}" data-value="${esc(value)}" aria-pressed="${!!on}"
+        title="Filter the store by ${esc(kLabel)}: ${esc(value)}">
+        <span class="chip-k">${esc(kLabel)}</span>${esc(value)}</button>`);
+    }
+  }
+  return out.length ? `<div class="chips">${out.join('')}</div>` : '';
+}
+
+function renderProv(dd) {
+  const rows = [];
+  const add = (k,v) => v && rows.push(
+    `<div class="prow"><span class="pk">${esc(k)}</span><span class="pv">${v}</span></div>`);
+
+  const inst = dd.institution || {};
+  if (inst.name) {
+    const ror = inst.registry_identifier;
+    add('institution', ror
+      ? `<a href="https://ror.org/${esc(ror)}" target="_blank" rel="noopener">${esc(inst.name)}</a>`
+      : esc(inst.name));
+  }
+  add('project', dd.project_name ? esc(dd.project_name) : '');
+
+  const people = (dd.investigators||[]).map(i=>{
+    const oid = /ORCID/i.test(i.registry||'') ? i.registry_identifier : null;
+    return oid
+      ? `<a href="https://orcid.org/${esc(oid)}" target="_blank" rel="noopener">${esc(i.name)}</a>
+         <span class="orcid">${esc(oid)}</span>`
+      : esc(i.name);
+  });
+  if (people.length) add(people.length>1?'investigators':'investigator', people.join('<br>'));
+
+  const funders = (dd.funding_source||[]).map(f=>{
+    const fu = f.funder||{};
+    const label = fu.abbreviation || fu.name || '';
+    return f.grant_number ? `${esc(label)} <span class="orcid">${esc(f.grant_number)}</span>` : esc(label);
+  }).filter(Boolean);
+  if (funders.length) add(funders.length>1?'funders':'funder', funders.join(', '));
+
+  if (dd.creation_time) {
+    const d = new Date(dd.creation_time);
+    add('created', isNaN(d) ? esc(dd.creation_time)
+      : esc(d.toISOString().slice(0,10)));
+  }
+  // Multi-subject templates carry a comma list of specimen IDs.
+  if (dd.subject_id) {
+    const ids = String(dd.subject_id).split(',').map(s=>s.trim()).filter(Boolean);
+    add(ids.length>1?`subjects (${ids.length})`:'subject',
+      `<span style="font-family:'DM Mono',monospace;font-size:10.5px">${esc(ids.join(', '))}</span>`);
+  }
+  add('license', dd.license ? esc(dd.license) : '');
+  add('name', dd.name
+    ? `<span style="font-family:'DM Mono',monospace;font-size:10.5px;color:var(--ink-3)">${esc(dd.name)}</span>` : '');
+
+  return rows.length ? `<div class="prov">${rows.join('')}</div>`
+                     : '<span style="font-size:12px;color:var(--ink-3)">Empty</span>';
+}
+
+function renderMf(m) {
+  if (!m||typeof m!=='object') return '<span style="color:var(--ink-3);font-size:12px">Invalid manifest</span>';
+  const rows=[];
+  const kv=(k,v)=>rows.push(`<div class="kvrow"><span class="kvk">${esc(k)}</span><span class="kvv">${v}</span></div>`);
+  // A manifest reference points at another asset in this store, and every
+  // asset now has a page — so link it, but only when it really resolves.
+  const ref = o => {
+    if (!o) return '';
+    const label = `${esc(o.name||'')}${o.version?`@${esc(o.version)}`:''}`;
+    const path  = refPath(o);
+    return (path && lookupVersion(path))
+      ? `<a class="ref" href="#/${path.split('/').map(encodeURIComponent).join('/')}"
+           title="Open ${esc(o.name||'')} ${esc(o.version||'')}">${label}</a>`
+      : `<span class="ref ref-dead" title="Not present in this store">${label}</span>`;
+  };
+
+  if (m.schema_version)     kv('schema_version', esc(m.schema_version));
+  if (m.coordinate_space)   kv('coordinate_space', ref(m.coordinate_space));
+  if (m.templates?.length)  kv('templates', m.templates.map(ref).join(' '));
+  if (m.annotation_sets?.length) kv('annotation_sets', m.annotation_sets.map(ref).join(' '));
+  if (m.terminology)        kv('terminology', ref(m.terminology));
+  if (m.template&&!m.templates) kv('template', ref(m.template));
+  if (m.scales?.length)     kv('scales', esc(m.scales.map(s=>`${s}µm`).join(', ')));
+  if (m.input_template)     kv('input_template',  ref(m.input_template));
+  if (m.output_template)    kv('output_template', ref(m.output_template));
+  if (m.source)             kv('source', ref(m.source));
+  if (m.target)             kv('target', ref(m.target));
+  if (m.directionality)     kv('directionality', esc(m.directionality));
+  if (m.location)           kv('location', locationLink(m.location, 'loc-sm'));
+  if (!rows.length) {
+    Object.entries(m).slice(0,6).forEach(([k,v])=>kv(k,`<span style="font-family:'DM Mono',monospace;font-size:10.5px">${esc(String(v))}</span>`));
+  }
+  return `<div class="mkv">${rows.join('')}</div>`;
+}
+
+function prog(msg) {
+  const el = document.getElementById('prog-msg');
+  if (el) el.textContent = msg;
+}
+function esc(s) {
+  return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── Boot ────────────────────────────────────────────── */
+document.getElementById('load-form').addEventListener('submit',e=>{e.preventDefault();load();});
+installFacetDelegate();
+
+// Served from inside a bucket? Describe that prefix instead of the default.
+st.selfHost = detectSelfHosted(location.href);
+if (st.selfHost) {
+  const {bucket, prefix, region} = st.selfHost;
+  document.getElementById('uri-in').value  = prefix ? `${bucket}/${prefix}` : bucket;
+  document.getElementById('rgn-sel').value = region;
+}
+
+// A shared link may name a different store than this copy would pick.
+const bootRoute = parseHash(location.hash);
+if (bootRoute.store) document.getElementById('uri-in').value = bootRoute.store;
+
+addEventListener('popstate', onHashChange);
+addEventListener('hashchange', onHashChange);
+
+load(bootRoute);
+</script>
