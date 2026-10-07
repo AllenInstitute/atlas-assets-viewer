@@ -11,8 +11,9 @@ browser with unsigned S3 requests.
 
 - Walks `<type>/<name>/<version>/…` one level at a time (`?delimiter=/`), so
   it never enumerates OME-Zarr chunks.
-- Validates structure against the spec: required and optional files per
-  asset type, name suffixes, and version format.
+- Validates structure against the spec (v0.2.2): required, optional, and
+  conditional files per asset type, name suffixes, version format, and the
+  minimal manifest keys.
 - Shows each asset's manifest and `data_description.json`, plus a browser for
   its contents with previews of text files.
 - Links atlases, templates, and annotation sets into Neuroglancer and
@@ -54,8 +55,11 @@ Opening `index.html` directly (`file://`) also works.
 
 ## Limits
 
-Validation is structural only. It does not check JSON schemas, OME-Zarr
-metadata, or terminology graphs; the `atlas-assets` CLI does those checks.
+Validation follows atlas-assets spec v0.2.2 and is structural only:
+required, optional, and conditional files; name and version formats; JSON
+parsing; and the minimal manifest keys (including `described_by`). It does
+not check JSON schemas, OME-Zarr metadata, or terminology graphs; the
+`atlas-assets` CLI does those checks under `--level full`.
 
 ## License
 
