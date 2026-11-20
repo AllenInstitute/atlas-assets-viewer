@@ -1097,10 +1097,10 @@ function storeUrl(path) {
   return `${base}/${pfx}${String(path).replace(/^\/+/, '')}`;
 }
 
-/* Quilt browses the same objects; the catalog path mirrors bucket + key.
+/* s3-browser browses the same objects; its `path` parameter is bucket + key.
    Both are derived from the loaded store, so they follow a different
    bucket or prefix without editing. */
-const QUILT_CATALOG = 'https://open.quiltdata.com';
+const S3_BROWSER = 'https://allenneuraldynamics.github.io/s3-browser/';
 
 const storeKey = path => {
   const d = st.data;
@@ -1108,18 +1108,24 @@ const storeKey = path => {
   return `${pfx}${String(path).replace(/^\/+/, '')}`;
 };
 const s3Uri    = path => st.data ? `s3://${st.data.bucket}/${storeKey(path)}` : '';
-const quiltUrl = path => st.data
-  ? `${QUILT_CATALOG}/b/${st.data.bucket}/tree/${storeKey(path).replace(/\/$/, '')}/`
-  : '';
+const browserUrl = path => {
+  const d = st.data;
+  if (!d) return '';
+  // a trailing "/" opens a folder; without one s3-browser opens the file
+  const key = storeKey(path).replace(/\/$/, '');
+  const q = new URLSearchParams({ path: `${d.bucket}/${key}/` });
+  if (d.region) q.set('region', d.region);
+  return `${S3_BROWSER}?${q}`;
+};
 
-/* A store path rendered as its full s3:// URI, linking into Quilt. */
+/* A store path rendered as its full s3:// URI, linking into s3-browser. */
 function locationLink(path, cls) {
   const uri = s3Uri(path);
   if (!uri) return '';
   // <wbr> after each separator so a long URI wraps at path boundaries
   const shown = esc(uri).replace(/\//g, '/<wbr>');
-  return `<a class="loc${cls?' '+cls:''}" href="${esc(quiltUrl(path))}"
-    target="_blank" rel="noopener" title="Browse in Quilt">${shown}</a>`;
+  return `<a class="loc${cls?' '+cls:''}" href="${esc(browserUrl(path))}"
+    target="_blank" rel="noopener" title="Browse in s3-browser">${shown}</a>`;
 }
 
 /* The OME-Zarr here is v3 (zarr.json, ome 0.6). Neuroglancer reads it,

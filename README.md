@@ -17,7 +17,7 @@ browser with unsigned S3 requests.
 - Shows each asset's manifest and `data_description.json`, plus a browser for
   its contents with previews of text files.
 - Links atlases, templates, and annotation sets into Neuroglancer and
-  NeuroGlass, and asset locations into Quilt.
+  NeuroGlass, and asset locations into s3-browser.
 - Gives every view a shareable URL.
 - **Export** saves the fetched tree as JSON. To reload a snapshot without
   touching S3, drop the file anywhere on the page.
