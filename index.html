@@ -1113,9 +1113,10 @@ const browserUrl = path => {
   if (!d) return '';
   // a trailing "/" opens a folder; without one s3-browser opens the file
   const key = storeKey(path).replace(/\/$/, '');
-  const q = new URLSearchParams({ path: `${d.bucket}/${key}/` });
-  if (d.region) q.set('region', d.region);
-  return `${S3_BROWSER}?${q}`;
+  // encode each segment but keep "/" literal, so shared links stay readable
+  const p = encodeURIComponent(`${d.bucket}/${key}/`).replace(/%2F/g, '/');
+  const r = d.region ? `&region=${encodeURIComponent(d.region)}` : '';
+  return `${S3_BROWSER}?path=${p}${r}`;
 };
 
 /* A store path rendered as its full s3:// URI, linking into s3-browser. */
